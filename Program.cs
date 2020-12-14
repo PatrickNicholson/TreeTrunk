@@ -1,8 +1,11 @@
 ﻿using System;
+using System.IO;
 using System.Net.Http;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 using Discord;
 using Discord.WebSocket;
 using Discord.Commands;
@@ -20,7 +23,11 @@ namespace TreeTrunk{
                 client.Log += LogAsync;
 
                 services.GetRequiredService<CommandService>().Log += LogAsync;
-                await client.LoginAsync(TokenType.Bot, "");//Environment.GetEnvironmentVariable("token"));
+                
+                var text = File.ReadAllText("config.json"); //find a better system for configs than json
+                string bot_token = (JsonConvert.DeserializeObject<Dictionary<string, string>>(text))["Token"];
+                
+                await client.LoginAsync(TokenType.Bot, bot_token);
                 await client.StartAsync();
                 await services.GetRequiredService<CommandHandler>().InitializeAsync();
 
