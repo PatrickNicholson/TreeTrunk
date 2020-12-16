@@ -1,6 +1,6 @@
-using System;
 using Discord;
 using Discord.Commands;
+using Microsoft.Extensions.Configuration;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -9,20 +9,19 @@ using System.Threading.Tasks;
 namespace TreeTrunk.Modules{
     public class HelpCommands : ModuleBase<SocketCommandContext>{
         private readonly CommandService _commands;
-        private readonly IServiceProvider _services;
-        private string prefix = "!"; //string prefix = _config["prefix"];
+        private readonly IConfigurationRoot _config;
 
-        public HelpCommands(CommandService commands, IServiceProvider services)
+        public HelpCommands(CommandService commands, IConfigurationRoot config)
         {
             _commands = commands;
-            _services = services;
+            _config = config;
         }
-        //private readonly CommandService _commands;
+
         [Command("help")]
         [Alias("h")]
         public async Task HelpAsync(){
             var builder = new EmbedBuilder(){
-                Color = new Color(114, 137, 218),
+                Color = Color.DarkGreen,
                 Description = "These are the commands you can use"
             };
             
@@ -32,7 +31,7 @@ namespace TreeTrunk.Modules{
                 foreach (var cmd in module.Commands){
                     var result = await cmd.CheckPreconditionsAsync(Context);
                     if (result.IsSuccess)
-                        description += $"{prefix}{cmd.Aliases.First()}\n";
+                        description += $"{_config["prefix"]}{cmd.Aliases.First()}\n";
                 }
                 
                 if (!string.IsNullOrWhiteSpace(description)){
@@ -58,7 +57,7 @@ namespace TreeTrunk.Modules{
                 return;
             }
             var builder = new EmbedBuilder(){
-                Color = new Color(114, 137, 218),
+                Color = Color.DarkGreen,
                 Description = $"Here are some commands like **{command}**"
             };
 
@@ -82,7 +81,7 @@ namespace TreeTrunk.Modules{
         [RequireUserPermission(GuildPermission.Administrator)]
         public async Task AdminHelpAsync(){
             var builder = new EmbedBuilder(){
-                Color = new Color(114, 137, 218),
+                Color = Color.DarkGreen,
                 Description = "These are the commands you can use"
             };
             
@@ -91,7 +90,7 @@ namespace TreeTrunk.Modules{
                 foreach (var cmd in module.Commands){
                     var result = await cmd.CheckPreconditionsAsync(Context);
                     if (result.IsSuccess)
-                        description += $"{prefix}{cmd.Aliases.First()}\n";
+                        description += $"{_config["prefix"]}{cmd.Aliases.First()}\n";
                 }
                 
                 if (!string.IsNullOrWhiteSpace(description)){
