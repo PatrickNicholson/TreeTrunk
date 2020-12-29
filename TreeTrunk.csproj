@@ -11,5 +11,6 @@
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3"/>
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="5.0.0"/>
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="5.0.0"/>
+    <PackageReference Include="Json.Net" Version="1.0.23"/>
   </ItemGroup>
 </Project>

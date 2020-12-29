@@ -1,8 +1,9 @@
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
-using System.IO;
+using System;
 using Discord;
 using Discord.Commands;
+using TreeTrunk.StaticFunc;
 
 
 namespace TreeTrunk.Modules{
@@ -38,10 +39,29 @@ namespace TreeTrunk.Modules{
             var m = Context.Message;
             await m.DeleteAsync();
             
-            await Program.WriteConfig("prefix",text);
+            await StaticFunctions.WriteConfig("prefix",text);
             //_config["prefix"] = text;
 
             await ReplyAsync("Changed prefix to: " + text);
+        }
+
+
+        [Command("info")]
+        [Summary("Get info.")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public async Task Getinfo(){
+            var m = Context.Guild.CreatedAt.ToOffset(TimeSpan.FromHours(-5));
+            Console.WriteLine("Stickman's Archipelago Created at:");
+            await Console.Out.WriteLineAsync(m.ToString());
+            Console.WriteLine("--------------------------------------------------------------------------------------------------");
+            var members = Context.Guild.Users;
+            foreach(var user in members){
+                if(user.PremiumSince.ToString() != ""){
+                    Console.WriteLine(user.Username.ToString() + ":");
+                    Console.WriteLine("Premium since: " + (user.PremiumSince).ToString());
+                    Console.WriteLine("----------------------------------------------------------------------------------");
+                }
+            }
         }
     }
 }
