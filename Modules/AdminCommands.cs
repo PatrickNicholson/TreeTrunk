@@ -3,7 +3,6 @@ using Microsoft.Extensions.Configuration;
 using System;
 using Discord;
 using Discord.Commands;
-using TreeTrunk.StaticFunc;
 
 
 namespace TreeTrunk.Modules{

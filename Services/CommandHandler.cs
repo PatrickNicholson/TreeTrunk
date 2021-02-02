@@ -21,21 +21,8 @@ namespace TreeTrunk.Services{
             _config = services.GetRequiredService<IConfigurationRoot>();
             _services = services;
             _commands.CommandExecuted += CommandExecutedAsync;
-            _discord.MessageReceived += MessageReceivedAsync;
-            // _discord.GuildMemberUpdated += ActivityAsync;
-            // _discord.UserVoiceStateUpdated += test;
-            
+            _discord.MessageReceived += MessageReceivedAsync;  
         }
-
-        // private async Task test(SocketUser u,SocketVoiceState a, SocketVoiceState b){
-            
-        //     await Console.Out.WriteLineAsync(u.Username.ToString());
-        //     await Console.Out.WriteLineAsync(a.VoiceChannel.Id.ToString());
-        //     await Console.Out.WriteLineAsync(b.VoiceChannel.Id.ToString());
-        //     await Console.Out.WriteLineAsync("-------------------------------------------------");
-
-        // }
-
 
         public async Task InitializeAsync(){
             await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
@@ -49,28 +36,6 @@ namespace TreeTrunk.Services{
             var context = new SocketCommandContext(_discord, message);
             await _commands.ExecuteAsync(context, argPos, _services);
         }
-    
-
-        // private async Task ActivityAsync(SocketGuildUser initial, SocketGuildUser final){
-        //     if(initial.VoiceChannel != null){
-        //         await Console.Out.WriteLineAsync((initial.Username).ToString());
-        //         await Console.Out.WriteLineAsync("inital: " + (initial.VoiceChannel).ToString());
-        //         await Console.Out.WriteLineAsync("final: " + (final.VoiceChannel).ToString());
-        //     }
-        //     await Console.Out.WriteLineAsync(initial.Username.ToString());
-        //     await Console.Out.WriteLineAsync("Activity-----");
-        //     if(initial.Activity != null || initial.Activity != null){
-        //         await Console.Out.WriteLineAsync(initial.Activity.ToString());
-        //         await Console.Out.WriteLineAsync(final.Activity.ToString());
-        //     }
-        //     await Console.Out.WriteLineAsync("Status-----");
-        //     await Console.Out.WriteLineAsync(initial.Status.ToString());
-        //     await Console.Out.WriteLineAsync(final.Status.ToString());
-            
-        //     await Console.Out.WriteLineAsync("----------------------------------------");
-          
-        //     return;
-        // }
 
         public async Task CommandExecutedAsync(Optional<CommandInfo> command, ICommandContext context, IResult result){
             if (!command.IsSpecified) return;

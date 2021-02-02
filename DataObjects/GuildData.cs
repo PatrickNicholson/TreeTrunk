@@ -6,6 +6,7 @@ namespace TreeTrunk.DataObjects{
         public string name;
         public Dictionary<ulong, Profile> users = new Dictionary<ulong, Profile>();
         public Dictionary<ulong, TextChannels> textchannels = new Dictionary<ulong, TextChannels>();
+        public Dictionary<ulong, Roles> roles = new Dictionary<ulong, Roles>();
 
         public GuildData(ulong GuildId, string Name){
             guild_id = GuildId;
