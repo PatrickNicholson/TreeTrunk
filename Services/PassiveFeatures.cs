@@ -17,7 +17,6 @@ namespace TreeTrunk.Services{
             _services = services;
             _discord.GuildMemberUpdated += ActivityAsync;
             _discord.UserVoiceStateUpdated += test;
-            
         }
 
         private async Task test(SocketUser u,SocketVoiceState a, SocketVoiceState b){

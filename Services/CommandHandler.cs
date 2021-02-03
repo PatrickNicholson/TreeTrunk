@@ -28,7 +28,8 @@ namespace TreeTrunk.Services{
             await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
         }
         
-        private async Task MessageReceivedAsync(SocketMessage rawMessage){
+        private async Task MessageReceivedAsync(SocketMessage rawMessage){          
+
             if(!(rawMessage is SocketUserMessage message)) return;
             if(message.Source != MessageSource.User) return;
             var argPos = 0;

@@ -3,16 +3,20 @@ using Microsoft.Extensions.Configuration;
 using System;
 using Discord;
 using Discord.Commands;
+using Discord.WebSocket;
+using System.Linq;
+using System.Threading;
 
 
 namespace TreeTrunk.Modules{
     public class AdminCommands : ModuleBase<SocketCommandContext>{
 
         private readonly IConfigurationRoot _config;
+        private readonly DiscordSocketClient _client;
 
-        public AdminCommands(IConfigurationRoot config)
-        {
+        public AdminCommands(IConfigurationRoot config, DiscordSocketClient client){
             _config = config;
+            _client = client;
         }
 
         [Command("userinfo")]
@@ -62,5 +66,17 @@ namespace TreeTrunk.Modules{
                 }
             }
         }
+
+        [Command("retrofit")]
+        [Summary("Reads all previous messages in server and collects them for statistics")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public Task RetroFitData(){
+            
+            StaticFunctions.retro(Context);
+            return Task.CompletedTask;
+        }
+
+
+
     }
 }

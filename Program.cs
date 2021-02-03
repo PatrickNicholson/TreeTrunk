@@ -34,14 +34,12 @@ namespace TreeTrunk{
                 throw new Exception("Please enter your bot's token into the `config.json` file.");
             
             await StaticFunctions.LoadGuildData();
-            TaskSchedule.Instance.ScheduleTask(24, 0, 24, () 
+            TaskSchedule.Instance.ScheduleTask(23, 59, 24, () 
                 => StaticFunctions.WriteGuildData());
     
             await client.LoginAsync(TokenType.Bot, discordToken);
             await client.StartAsync();
             await services.GetRequiredService<CommandHandler>().InitializeAsync();
-            
-
             await Task.Delay(Timeout.Infinite);
             
         }
