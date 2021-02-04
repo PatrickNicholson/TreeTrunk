@@ -76,6 +76,16 @@ namespace TreeTrunk.Modules{
             return Task.CompletedTask;
         }
 
+        [Command("test")]
+        [Summary("Reads all previous messages in server and collects them for statistics")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public async Task test(){
+            var channels = _client.GetGuild(Context.Guild.Id).TextChannels;
+            foreach(var i in channels){
+                await ReplyAsync(i.Name,false);
+            }
+        }
+
 
 
     }
