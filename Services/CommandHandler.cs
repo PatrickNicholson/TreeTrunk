@@ -20,8 +20,10 @@ namespace TreeTrunk.Services{
             _discord = services.GetRequiredService<DiscordSocketClient>();
             _config = services.GetRequiredService<IConfigurationRoot>();
             _services = services;
+
             _commands.CommandExecuted += CommandExecutedAsync;
-            _discord.MessageReceived += MessageReceivedAsync;  
+            _discord.MessageReceived += MessageReceivedAsync;
+            _discord.GuildMemberUpdated += ActivityAsync;
         }
 
         public async Task InitializeAsync(){
@@ -42,6 +44,47 @@ namespace TreeTrunk.Services{
             if (!command.IsSpecified) return;
             if (result.IsSuccess) return;
             await context.Channel.SendMessageAsync($"{result}");
+        }
+
+
+//Passive Features-------------------------------------------------------------------------
+        private async Task ActivityAsync(SocketGuildUser initial, SocketGuildUser final){           
+            if(initial.IsBot || final.IsBot) return;
+
+            var initialAct = initial.Activity == null? ActivityType.CustomStatus : initial.Activity.Type;
+            var finalAct = final.Activity == null? ActivityType.CustomStatus : final.Activity.Type;
+
+            if(initialAct != finalAct){
+                ulong id = initial.Guild.Id;
+                object roleid = StaticFunctions.GetGuildData(id, "StreamerRole");
+                if(roleid == null) return;
+                ulong streamrole;
+                StaticFunctions.CastIt<ulong>(roleid, out streamrole);
+
+                Console.WriteLine(initial.Username.ToString());
+                Console.WriteLine(initialAct.ToString());
+                Console.WriteLine(finalAct.ToString());
+
+                if(initialAct != ActivityType.Streaming && finalAct == ActivityType.Streaming){
+                    await initial.AddRoleAsync(initial.Guild.GetRole(streamrole));
+                }
+                else if(initialAct == ActivityType.Streaming && finalAct != ActivityType.Streaming){
+                    await initial.RemoveRoleAsync(initial.Guild.GetRole(streamrole));
+                }
+                else if(initialAct != ActivityType.Playing && finalAct == ActivityType.Playing){
+                    
+                }
+                else if(initialAct != ActivityType.Playing && finalAct == ActivityType.Playing){
+                    
+                }
+            }
+            
+
+            
+            
+            
+          
+            return;
         }
 
     }

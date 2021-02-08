@@ -9,6 +9,7 @@ using Discord;
 using Discord.WebSocket;
 using Discord.Commands;
 using TreeTrunk.Services;
+using System.Collections.Concurrent;
 
 namespace TreeTrunk{
     class Program{
@@ -33,6 +34,8 @@ namespace TreeTrunk{
             if (string.IsNullOrWhiteSpace(discordToken))
                 throw new Exception("Please enter your bot's token into the `config.json` file.");
             
+            var data = StaticFunctions.data;
+
             await StaticFunctions.LoadGuildData();
             TaskSchedule.Instance.ScheduleTask(23, 59, 24, () 
                 => StaticFunctions.WriteGuildData());
@@ -59,6 +62,7 @@ namespace TreeTrunk{
             service.AddSingleton<DiscordSocketClient>()
                 .AddSingleton<CommandService>()
                 .AddSingleton<CommandHandler>()
+                //.AddSingleton<StaticFunctions>()
                 .AddSingleton<HttpClient>();
         }
     }

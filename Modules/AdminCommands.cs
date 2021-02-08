@@ -1,11 +1,10 @@
+using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
-using System;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
-using System.Linq;
-using System.Threading;
+using System.Collections.Generic;
 
 
 namespace TreeTrunk.Modules{
@@ -79,13 +78,41 @@ namespace TreeTrunk.Modules{
         [Command("test")]
         [Summary("Reads all previous messages in server and collects them for statistics")]
         [RequireUserPermission(GuildPermission.Administrator)]
-        public async Task test(){
-            var channels = _client.GetGuild(Context.Guild.Id).TextChannels;
-            foreach(var i in channels){
-                await ReplyAsync(i.Name,false);
+        public Task Test(){
+           
+
+            foreach (KeyValuePair<string, object> kvp in StaticFunctions.data[422449575127678976].storeddata)
+            {
+                string streamrole;
+                StaticFunctions.CastIt<string>(kvp.Value, out streamrole);
+                Console.WriteLine(kvp.Key, streamrole);
             }
+
+            return Task.CompletedTask;
+                
+            
         }
 
+        [Command("setstreamrole")]
+        [Alias("sst")]
+        [Summary("Reads all previous messages in server and collects them for statistics")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public async Task SetStreamerRole([Remainder] string text){
+            
+            var roles = Context.Guild.Roles;
+            var id = Context.Guild.Id;
+            bool found = false;
+            foreach(var role in roles){
+                if(String.Equals(role.Name, text, StringComparison.CurrentCultureIgnoreCase)){
+                    StaticFunctions.AddGuildData(Context.Guild.Id, "StreamerRole", role.Id);
+                    found = true;
+                }
+            }
+            if(!found) await ReplyAsync(text + " does not exist as a role.");  
+            return;
+                
+            
+        }
 
 
     }

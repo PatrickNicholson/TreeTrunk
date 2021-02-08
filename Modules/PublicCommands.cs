@@ -58,6 +58,7 @@ namespace TreeTrunk.Modules{
             await message.AddReactionsAsync(reactions.ToArray());
             
             reactions.Clear();
+
             
         }
     }

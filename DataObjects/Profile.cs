@@ -9,6 +9,7 @@ namespace TreeTrunk.DataObjects{
         public ulong num_messages;
         public DateTime last_active;
         public int points_earned;
+        public DateTime started_playing;
 
         public Profile(ulong Id){
             num_messages = 0;

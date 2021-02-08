@@ -4,8 +4,6 @@ using Newtonsoft.Json;
 using TreeTrunk.DataObjects;
 using System.Collections.Concurrent;
 using Discord;
-
-
 using System;
 using Discord.Commands;
 using System.Linq;
@@ -16,9 +14,43 @@ namespace TreeTrunk{
 
         public static ConcurrentDictionary<ulong, GuildData> data = new ConcurrentDictionary<ulong, GuildData>();
         
+        
+        //returns null if it cant find the value
+        public static void AddGuildData(ulong guildId, string key, object value){
+            
+            lock(data){
+
+                if(data.ContainsKey(guildId)){
+                    
+                    if(data[guildId].storeddata.ContainsKey(key)){
+                        data[guildId].storeddata[key] = value;
+                    }
+                    else{
+                        data[guildId].storeddata.TryAdd(key,value);
+                    }
+                }
+                else{
+                    data.TryAdd(guildId, new GuildData(guildId));
+                    data[guildId].storeddata.TryAdd(key, value);
+                }
+            }
+
+
+        }
+        
+        //returns null if it cant find the value
+        public static object GetGuildData(ulong guildId, string index){
+            object value;
+            lock(data){
+                data.GetOrAdd(guildId,new GuildData(guildId)).storeddata.TryGetValue(index, out value);
+            }
+            return value;
+        }
+        
         public static Task LoadGuildData(){
-            string json = File.ReadAllText("data.json");
+            string json = File.ReadAllText("data.json");            
             data = JsonConvert.DeserializeObject<ConcurrentDictionary<ulong, GuildData>>(json);
+            data = data ?? new ConcurrentDictionary<ulong, GuildData>();
             return Task.CompletedTask;
         }
 
@@ -72,6 +104,9 @@ namespace TreeTrunk{
                 
                     
             }
+        }
+        public static void CastIt<T>(object value, out T target){
+            target = (T) Convert.ChangeType(value, typeof(T));
         }
 
     }
