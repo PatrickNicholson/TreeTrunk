@@ -41,8 +41,8 @@ namespace TreeTrunk{
             TaskSchedule.Instance.ScheduleTask(23, 59, 24, () 
                 => StaticFunctions.WriteGuildData());
             //execute AR update
-            TaskSchedule.Instance.ScheduleTask(23, 54, 24, () 
-                => StaticFunctions.UpdateAR());
+            TaskSchedule.Instance.ScheduleTask(23, 54, 24, async () 
+                => await StaticFunctions.UpdateAR());
     
             await client.LoginAsync(TokenType.Bot, discordToken);
             await client.StartAsync();

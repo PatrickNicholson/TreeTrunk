@@ -62,15 +62,16 @@ namespace TreeTrunk{
             return Task.CompletedTask;
         }
 
-        public static Task InitializeData(){
+        public static async Task InitializeData(){
             var _discord = services.GetRequiredService<DiscordSocketClient>();
             var context = _discord.Guilds;
+            await _discord.DownloadUsersAsync(context);
             lock(StaticFunctions.data){
                 
                 foreach(var guild in context){
                     StaticFunctions.data.GetOrAdd(guild.Id,new GuildData(guild.Id));
                     foreach(var user in _discord.GetGuild(guild.Id).Users){
-                        if(!StaticFunctions.data[guild.Id].usermanager.ContainsKey(user.Id)){
+                        if(!StaticFunctions.data[guild.Id].usermanager.ContainsKey(user.Id) && !user.IsBot){
                             StaticFunctions.data[guild.Id].usermanager.Add(user.Id, new Profile(user.Id,user.Username));
                         }
                     }
@@ -78,112 +79,113 @@ namespace TreeTrunk{
 
                 WriteGuildData();
             }
-            return Task.CompletedTask;
         }
 
-        public static Task UpdateAR(){
+        public static async Task UpdateAR(){
             var context = services.GetRequiredService<DiscordSocketClient>();
-            lock(data){
-                foreach(KeyValuePair<ulong, GuildData> guild in data){
-                    var max_AR = guild.Value.armax;
-                    var min_AR = guild.Value.armin;
-                    var max_MMR = min_AR;
-                    var decay_value = guild.Value.decay;
-                    var guildcomms = context.GetGuild(guild.Key);
-                    TimeSpan placements = guild.Value.placementtime;
+            var datacopy = data;
+            
+            foreach(KeyValuePair<ulong, GuildData> guild in datacopy){
+                var max_AR = guild.Value.armax;
+                var min_AR = guild.Value.armin;
+                var max_MMR = min_AR;
+                var decay_value = guild.Value.decay;
+                var guildcomms = context.GetGuild(guild.Key);
+                TimeSpan placements = guild.Value.placementtime;
 
-                    foreach(KeyValuePair<ulong, Profile> user in guild.Value.usermanager){
-                        if(user.Value.activityrating > max_MMR){
-                            max_MMR = user.Value.activityrating;
-                        }
-                    }
-
-                    foreach(KeyValuePair<ulong, Profile> user in guild.Value.usermanager){
-                        
-                        TimeSpan profiledate = user.Value.profilecreated - DateTime.Now;
-                        if(TimeSpan.Compare(profiledate,placements) < 0){
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.bronze));
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.silver));
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.gold));
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.plat));
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.diamond));
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.master));
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.gm));
-                            guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(guild.Value.unranked));
-                            continue;
-                        }
-
-                        var points_gained = user.Value.points_earned;
-                        var mmr = user.Value.activityrating;
-                        mmr += (points_gained*((1-(mmr/max_MMR)) + (1 - (mmr/max_AR)))) - (decay_value*((mmr - min_AR)/max_AR));
-
-                        if(mmr > max_AR) mmr = max_AR;
-                        else if(mmr < min_AR) mmr = min_AR;
-
-                        data[guild.Key].usermanager[user.Key].activityrating = mmr;
-
-                        //bronze
-                        if(mmr < guild.Value.bronze_ar){
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.unranked));
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.silver));
-                            guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(guild.Value.bronze));
-                        }
-                        //silver
-                        else if(mmr > guild.Value.bronze_ar && mmr < guild.Value.gold_ar){
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.unranked));
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.bronze));
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.gold));
-                            guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(guild.Value.silver));
-                        }
-                        //gold
-                        else if(mmr > guild.Value.silver_ar && mmr < guild.Value.plat_ar){
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.unranked));
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.silver));
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.plat));
-                            guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(guild.Value.gold));
-                        }
-                        //plat
-                        else if(mmr > guild.Value.gold_ar && mmr < guild.Value.diamond_ar){
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.unranked));
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.gold));
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.diamond));
-                            guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(guild.Value.plat));
-                        }
-                        //diamond
-                        else if(mmr > guild.Value.plat_ar && mmr < guild.Value.master_ar){
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.unranked));
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.plat));
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.master));
-                            guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(guild.Value.diamond));
-                        }
-                        //master
-                        else if(mmr > guild.Value.diamond_ar && mmr < guild.Value.gm_ar){
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.unranked));
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.diamond));
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.gm));
-                            guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(guild.Value.master));
-                        }
-                        //grand master
-                        else if(mmr > guild.Value.master_ar){
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.unranked));
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.master));
-                            guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(guild.Value.gm));
-                        }
-                        else{
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.bronze));
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.silver));
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.gold));
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.plat));
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.diamond));
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.master));
-                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.gm));
-                            guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(guild.Value.unranked));
-                        }
-
+                
+                foreach(KeyValuePair<ulong, Profile> user in guild.Value.usermanager){
+                    if(user.Value.activityrating > max_MMR){
+                        max_MMR = user.Value.activityrating;
                     }
                 }
+                
+                foreach(KeyValuePair<ulong, Profile> user in guild.Value.usermanager){
+                    
+                    TimeSpan profiledate = user.Value.profilecreated - DateTime.Now;
+                    if(TimeSpan.Compare(profiledate,placements) < 0){
+                        Console.WriteLine(user.Value.name.ToString());
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.bronze));
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.silver));
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.gold));
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.plat));
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.diamond));
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.master));
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.gm));
+                        await guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(guild.Value.unranked));
+                        continue;
+                    }
+
+                    var points_gained = user.Value.points_earned;
+                    var mmr = user.Value.activityrating;
+                    mmr += (points_gained*((1-(mmr/max_MMR)) + (1 - (mmr/max_AR)))) - (decay_value*((mmr - min_AR)/max_AR));
+
+                    if(mmr > max_AR) mmr = max_AR;
+                    else if(mmr < min_AR) mmr = min_AR;
+
+                    data[guild.Key].usermanager[user.Key].activityrating = mmr;
+
+                    //bronze
+                    if(mmr < guild.Value.bronze_ar){
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.unranked));
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.silver));
+                        await guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(guild.Value.bronze));
+                    }
+                    //silver
+                    else if(mmr > guild.Value.bronze_ar && mmr < guild.Value.gold_ar){
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.unranked));
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.bronze));
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.gold));
+                        await guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(guild.Value.silver));
+                    }
+                    //gold
+                    else if(mmr > guild.Value.silver_ar && mmr < guild.Value.plat_ar){
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.unranked));
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.silver));
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.plat));
+                        await guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(guild.Value.gold));
+                    }
+                    //plat
+                    else if(mmr > guild.Value.gold_ar && mmr < guild.Value.diamond_ar){
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.unranked));
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.gold));
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.diamond));
+                        await guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(guild.Value.plat));
+                    }
+                    //diamond
+                    else if(mmr > guild.Value.plat_ar && mmr < guild.Value.master_ar){
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.unranked));
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.plat));
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.master));
+                        await guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(guild.Value.diamond));
+                    }
+                    //master
+                    else if(mmr > guild.Value.diamond_ar && mmr < guild.Value.gm_ar){
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.unranked));
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.diamond));
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.gm));
+                        await guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(guild.Value.master));
+                    }
+                    //grand master
+                    else if(mmr > guild.Value.master_ar){
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.unranked));
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.master));
+                        await guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(guild.Value.gm));
+                    }
+                    else{
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.bronze));
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.silver));
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.gold));
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.plat));
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.diamond));
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.master));
+                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.gm));
+                        await guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(guild.Value.unranked));
+                    }
+
+                }
             }
-            return Task.CompletedTask;
+            //return Task.CompletedTask;
         }
 /*
         //changes config file on the fly

@@ -68,9 +68,6 @@ namespace TreeTrunk.Services{
             //if a user gets sent into the afk channel, subtract the afk timeout from their time. 
             var before = initial.VoiceChannel;
             var after = final.VoiceChannel;
-
-            Console.WriteLine("initial am i deafened? : " + initial.IsSelfDeafened.ToString());
-            Console.WriteLine("final am i deafened? : " + final.IsSelfDeafened.ToString());
             
                         
             //user joined voice and isnt self deafened
@@ -95,7 +92,7 @@ namespace TreeTrunk.Services{
                 }
             }
             //user left disconnects
-            else if(before != null && after == null){
+            else if(before != null && after == null && StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_start != DateTime.MinValue){
                 float regular = 0;
                 float share = 0;
                 var pointsregular = (StaticFunctions.data[before.Guild.Id].vactive) / 60;

@@ -133,13 +133,15 @@ namespace TreeTrunk.Modules{
         [Command("saveguilddata")]
         [Alias("sgd")]
         [RequireUserPermission(GuildPermission.Administrator)]
-        public Task savedata(){
-            
-            StaticFunctions.WriteGuildData();
-            
-            return Task.CompletedTask;
-                
-            
+        public async Task savedata(){                       
+            var m = Context.Message;
+            await m.DeleteAsync();
+            helper();
+        }
+
+        private async void helper(){
+            await StaticFunctions.UpdateAR();
+            await StaticFunctions.WriteGuildData(); 
         }
 
 

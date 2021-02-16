@@ -54,10 +54,12 @@ namespace TreeTrunk.Modules{
             };
             //bar_chart emoji
             var message = await ReplyAsync("\U0001F4CA Poll!",false,builder.Build());
-            await Console.Out.WriteLineAsync(reactions.ToString());
-            await message.AddReactionsAsync(reactions.ToArray());
+            reactionadder(message,reactions);
             
-            
+        }
+
+        private async void reactionadder(IUserMessage m, List<IEmote> reactions){
+            await m.AddReactionsAsync(reactions.ToArray());
         }
     }
 }
