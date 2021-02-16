@@ -8,7 +8,6 @@ using Discord.Commands;
 namespace TreeTrunk.Modules{
     public class PublicCommands : ModuleBase<SocketCommandContext>{
 
-        private List<IEmote> reactions = new List<IEmote>();
         //list of emojis A-J
         private readonly string[] emojisA_J = {
             "\U0001F1E6","\U0001F1E7","\U0001F1E8","\U0001F1E9","\U0001F1EA",
@@ -33,6 +32,7 @@ namespace TreeTrunk.Modules{
         [Summary("Can have 2-20 options. How to use: \"poll <title> <option1> <option2> <option3>...\"")]
         public async Task PollAsync(params string[] objects){
             var m = Context.Message;
+            var reactions = new List<IEmote>();
             await m.DeleteAsync();
 
             if(objects.Length > 21 || objects.Length < 3){
@@ -57,8 +57,6 @@ namespace TreeTrunk.Modules{
             await Console.Out.WriteLineAsync(reactions.ToString());
             await message.AddReactionsAsync(reactions.ToArray());
             
-            reactions.Clear();
-
             
         }
     }

@@ -9,7 +9,8 @@ using Discord;
 using Discord.WebSocket;
 using Discord.Commands;
 using TreeTrunk.Services;
-using System.Collections.Concurrent;
+using System.Reflection;
+
 
 namespace TreeTrunk{
     class Program{
@@ -18,14 +19,14 @@ namespace TreeTrunk{
             => new Program().MainAsync().GetAwaiter().GetResult();
 
         public async Task MainAsync(){
-
             var service = new ServiceCollection();
             ConfigureServices(service);
             var services = service.BuildServiceProvider();
-
+            StaticFunctions.services = services;
             //hook into logging service
             var client = services.GetRequiredService<DiscordSocketClient>();
             client.Log += LogAsync;
+            client.Ready += StaticFunctions.InitializeData;
             services.GetRequiredService<CommandService>().Log += LogAsync;
             
             var config = services.GetRequiredService<IConfigurationRoot>();
@@ -39,10 +40,15 @@ namespace TreeTrunk{
             await StaticFunctions.LoadGuildData();
             TaskSchedule.Instance.ScheduleTask(23, 59, 24, () 
                 => StaticFunctions.WriteGuildData());
+            //execute AR update
+            TaskSchedule.Instance.ScheduleTask(23, 54, 24, () 
+                => StaticFunctions.UpdateAR());
     
             await client.LoginAsync(TokenType.Bot, discordToken);
             await client.StartAsync();
+
             await services.GetRequiredService<CommandHandler>().InitializeAsync();
+            
             await Task.Delay(Timeout.Infinite);
             
         }

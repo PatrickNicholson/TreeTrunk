@@ -5,6 +5,7 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using System.Collections.Generic;
+using System.Linq;
 
 
 namespace TreeTrunk.Modules{
@@ -39,9 +40,12 @@ namespace TreeTrunk.Modules{
         [RequireUserPermission(GuildPermission.Administrator)]
         public async Task ChangePrefix([Remainder] string text){
             var m = Context.Message;
+            var guild = Context.Guild.Id;
             await m.DeleteAsync();
             
-            await StaticFunctions.WriteConfig("prefix",text);
+            StaticFunctions.data[guild].prefix = text;
+
+            //await StaticFunctions.WriteConfig("prefix",text);
             //_config["prefix"] = text;
 
             await ReplyAsync("Changed prefix to: " + text);
@@ -66,15 +70,25 @@ namespace TreeTrunk.Modules{
             }
         }
 
+
         [Command("retrofit")]
         [Summary("Reads all previous messages in server and collects them for statistics")]
         [RequireUserPermission(GuildPermission.Administrator)]
         public Task RetroFitData(){
             
-            StaticFunctions.retro(Context);
+            retro(Context);
             return Task.CompletedTask;
         }
 
+        [Command("retrofitusers")]
+        [Summary("Reads all previous messages in server and collects them for statistics")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public Task RetroFitProfiles(){
+            
+            UpdateProfileDatabase(Context);
+            return Task.CompletedTask;
+        }
+/*
         [Command("test")]
         [Summary("Reads all previous messages in server and collects them for statistics")]
         [RequireUserPermission(GuildPermission.Administrator)]
@@ -92,7 +106,7 @@ namespace TreeTrunk.Modules{
                 
             
         }
-
+*/
         [Command("setstreamrole")]
         [Alias("sst")]
         [Summary("Reads all previous messages in server and collects them for statistics")]
@@ -104,7 +118,8 @@ namespace TreeTrunk.Modules{
             bool found = false;
             foreach(var role in roles){
                 if(String.Equals(role.Name, text, StringComparison.CurrentCultureIgnoreCase)){
-                    StaticFunctions.AddGuildData(Context.Guild.Id, "StreamerRole", role.Id);
+                    //StaticFunctions.AddGuildData(Context.Guild.Id, "StreamerRole", role.Id);
+                    StaticFunctions.data[Context.Guild.Id].streamrole = role.Id;
                     found = true;
                 }
             }
@@ -112,6 +127,70 @@ namespace TreeTrunk.Modules{
             return;
                 
             
+        }
+
+
+        [Command("saveguilddata")]
+        [Alias("sgd")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public Task savedata(){
+            
+            StaticFunctions.WriteGuildData();
+            
+            return Task.CompletedTask;
+                
+            
+        }
+
+
+
+        private async void retro(SocketCommandContext context){
+            var guild_id = context.Guild.Id;
+            var textchannels = context.Client.GetGuild(guild_id).TextChannels;
+            IMessage message_index = null;
+            foreach(var textchannel in textchannels){
+                
+                if(message_index == null){
+                    foreach(var message in await textchannel.GetMessagesAsync(1).FlattenAsync()){
+                        message_index = message;
+                    }
+                }
+                IMessage last_message = message_index;
+                //Console.WriteLine(textchannel.Name.ToString());
+
+                int leng = 1;
+                int count = 1;
+                while(leng > 0){
+                    var messages = await textchannel.GetMessagesAsync(last_message, Direction.Before, 100).FlattenAsync();
+                    //Console.WriteLine(messages.Count());
+                    foreach( var message in messages){
+                        //Console.WriteLine(message.Author.ToString());
+                        
+                        //Console.WriteLine(message);
+                        last_message = message;
+                    }
+                    //Console.WriteLine(last_message);
+                    
+                    leng = messages.Count();
+                    count += leng;
+                    
+                }
+                Console.WriteLine(textchannel.Name.ToString() + " " + count.ToString());
+                message_index = null;
+                
+                    
+            }
+        }
+
+        private async void UpdateProfileDatabase(SocketCommandContext context){
+            var guild_id = context.Guild.Id;
+            await context.Client.GetGuild(guild_id).DownloadUsersAsync();
+            var users = context.Client.GetGuild(guild_id).Users.ToList();
+
+            foreach( var user in users){
+
+            }
+
         }
 
 

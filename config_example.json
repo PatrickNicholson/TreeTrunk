@@ -1,4 +1,3 @@
 {
-  "token": "Get your own bot token :)", 
-  "prefix": "!"
+  "token": "Get your own bot :> (yes i know this is a bad way to store tokens, its temporary)"
 }

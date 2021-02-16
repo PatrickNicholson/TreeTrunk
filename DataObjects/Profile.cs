@@ -1,22 +1,40 @@
 using System;
 namespace TreeTrunk.DataObjects{
     public class Profile{
+        public string name;
         public ulong id;
-        public int sr_score;
-        public ulong voice_total;
-        public DateTime voice_start;
-        public DateTime voice_end;
-        public ulong num_messages;
-        public DateTime last_active;
+        public ulong money;
+        public double voiceminutetotal;
+        public double messagetotal;
+        public int activityrating;
         public int points_earned;
         public DateTime started_playing;
+        public DateTime last_active;
+        public DateTime voice_start;
+        public DateTime voiceshare_start;
+        public DateTime voiceshare_end;
+        public DateTime deafened_start;
+        public float deafened_timespan;
+        public float voiceshare_timespan;
+        public readonly DateTime profilecreated;
 
-        public Profile(ulong Id){
-            num_messages = 0;
-            voice_total = 0;
-            sr_score = 1;
+        public Profile(ulong Id, string Name){
+            name = Name;
             id = Id;
+            money = 0;
+            voiceminutetotal = 0;
+            messagetotal = 0;
+            activityrating = 1;
             points_earned = 0;
+            profilecreated = DateTime.Now;
+            started_playing = DateTime.MinValue;
+            last_active = DateTime.MinValue;
+            voice_start = DateTime.MinValue;
+            voiceshare_start = DateTime.MinValue;
+            voiceshare_end = DateTime.MinValue;
+            voiceshare_timespan = 0;
+            deafened_start = DateTime.MinValue;
+            deafened_timespan = 0;
         }
     }
 }
