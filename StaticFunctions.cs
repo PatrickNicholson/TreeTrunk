@@ -93,10 +93,13 @@ namespace TreeTrunk{
                 var guildcomms = context.GetGuild(guild.Key);
                 TimeSpan placements = guild.Value.placementtime;
 
-                
-                foreach(KeyValuePair<ulong, Profile> user in guild.Value.usermanager){
-                    if(user.Value.activityrating > max_MMR){
-                        max_MMR = user.Value.activityrating;
+                if(guild.Value.max_player_mmr == 0){
+                    foreach(KeyValuePair<ulong, Profile> user in guild.Value.usermanager){
+                        if(user.Value.activityrating > max_MMR){
+                            max_MMR = user.Value.activityrating;
+                            guild.Value.max_player_mmr = max_MMR;
+                            data[guild.Key].max_player_mmr = max_MMR;
+                        }
                     }
                 }
                 
@@ -105,13 +108,13 @@ namespace TreeTrunk{
                     TimeSpan profiledate = user.Value.profilecreated - DateTime.Now;
                     if(TimeSpan.Compare(profiledate,placements) < 0){
                         Console.WriteLine(user.Value.name.ToString());
-                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.bronze));
-                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.silver));
-                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.gold));
-                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.plat));
-                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.diamond));
-                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.master));
-                        await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.gm));
+                        //await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.bronze));
+                        //await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.silver));
+                        //await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.gold));
+                        //await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.plat));
+                        //await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.diamond));
+                        //await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.master));
+                        //await guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.gm));
                         await guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(guild.Value.unranked));
                         continue;
                     }
@@ -124,6 +127,8 @@ namespace TreeTrunk{
                     else if(mmr < min_AR) mmr = min_AR;
 
                     data[guild.Key].usermanager[user.Key].activityrating = mmr;
+
+                    if(mmr > max_MMR) data[guild.Key].max_player_mmr = mmr;
 
                     //bronze
                     if(mmr < guild.Value.bronze_ar){

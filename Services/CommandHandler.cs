@@ -27,7 +27,7 @@ namespace TreeTrunk.Services{
             _discord.GuildMemberUpdated += ActivityAsync; // AR changes, money Changes, stats, 
             _discord.UserJoined += UserJoinAsync; // Assigns default role
             _discord.UserLeft += UserLeftAsync; // notifies when someone left the server
-            _discord.UserVoiceStateUpdated += UserVoiceStateUpdatedAsync; // AR changes, money changes, 
+            _discord.UserVoiceStateUpdated += UserVoiceStateUpdatedAsync; // AR changes, money changes,
         }
 
         public async Task InitializeAsync(){

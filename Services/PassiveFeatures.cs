@@ -13,6 +13,8 @@ namespace TreeTrunk.Services{
             var initialAct = initial.Activity == null? ActivityType.CustomStatus : initial.Activity.Type;
             var finalAct = final.Activity == null? ActivityType.CustomStatus : final.Activity.Type;
 
+            
+
             if(initialAct != finalAct){
                 ulong id = initial.Guild.Id;
 
@@ -47,6 +49,7 @@ namespace TreeTrunk.Services{
 
 
         private async Task UserJoinAsync(SocketGuildUser user){
+            if(user.IsBot) return;
             //quick fix start
             ulong defaultrole = StaticFunctions.data[user.Guild.Id].unranked;
             StaticFunctions.data[user.Guild.Id].usermanager.TryAdd(user.Id,new Profile(user.Id,user.Username));
@@ -55,7 +58,7 @@ namespace TreeTrunk.Services{
         }
 
         private async Task UserLeftAsync(SocketGuildUser user){
-
+            if(user.IsBot) return;
             //quick fix start
             ulong modchannel = StaticFunctions.data[user.Guild.Id].modchat;    
             var chnl =  user.Guild.GetChannel(modchannel) as IMessageChannel;
@@ -66,142 +69,231 @@ namespace TreeTrunk.Services{
         private Task UserVoiceStateUpdatedAsync(SocketUser user, SocketVoiceState initial, SocketVoiceState final){
             //points only count if the voice chat has more than 1 person and if they are not self deafened
             //if a user gets sent into the afk channel, subtract the afk timeout from their time. 
+            if(user.IsBot) return Task.CompletedTask;
             var before = initial.VoiceChannel;
             var after = final.VoiceChannel;
             
                         
             //user joined voice and isnt self deafened
-            if(before == null && after != null){
-                if(final.IsSelfDeafened){
-                    StaticFunctions.data[after.Guild.Id].usermanager[user.Id].deafened_start = DateTime.Now;
-                }
-                if(after.Id == after.Guild.AFKChannel.Id){
-                    StaticFunctions.data[after.Guild.Id].usermanager[user.Id].voice_start = DateTime.MinValue;
-                    StaticFunctions.data[after.Guild.Id].usermanager[user.Id].voiceshare_start = DateTime.MinValue;
-                    StaticFunctions.data[after.Guild.Id].usermanager[user.Id].voiceshare_end = DateTime.MinValue;
-                    StaticFunctions.data[after.Guild.Id].usermanager[user.Id].voiceshare_timespan = 0;
-                    StaticFunctions.data[after.Guild.Id].usermanager[user.Id].deafened_timespan = 0;
-                }
-                else if(after.Users.Count == 2){
+            if(before == null && after != null && after.Id != after.Guild.AFKChannel.Id && after.Users.Count > 1){
+                if(after.Users.Count == 2 && !final.IsSelfDeafened){
                     foreach(var users in after.Users){
-                        StaticFunctions.data[after.Guild.Id].usermanager[users.Id].voice_start = DateTime.Now;
+                        if(users.IsStreaming && !users.IsSelfDeafened){
+                            StaticFunctions.data[after.Guild.Id].usermanager[users.Id].share_start = DateTime.Now;
+                        }
+                        else if(!users.IsStreaming && !users.IsSelfDeafened){
+                            StaticFunctions.data[after.Guild.Id].usermanager[users.Id].voice_start = DateTime.Now;
+                        }
                     }
                 }
-                else if(after.Users.Count > 2){
+                else if(after.Users.Count == 2 && final.IsSelfDeafened){
+                    foreach(var users in after.Users){
+                        if(users.Id != user.Id){
+                            if(users.IsStreaming && !users.IsSelfDeafened){
+                                StaticFunctions.data[after.Guild.Id].usermanager[users.Id].share_start = DateTime.Now;
+                            }
+                            else if(!users.IsStreaming && !users.IsSelfDeafened){
+                                StaticFunctions.data[after.Guild.Id].usermanager[users.Id].voice_start = DateTime.Now;
+                            }
+                        }
+                    }
+                }
+                else if(after.Users.Count > 2 && !final.IsSelfDeafened){
                     StaticFunctions.data[after.Guild.Id].usermanager[user.Id].voice_start = DateTime.Now;
                 }
             }
             //user left disconnects
-            else if(before != null && after == null && StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_start != DateTime.MinValue){
+            else if(before != null && after == null && before.Id != before.Guild.AFKChannel.Id){
+                if(before.Users.Count == 2){
+                    foreach(var users in after.Users){
+                        if(users.Id != user.Id){
+                            if(initial.IsStreaming && !users.IsSelfDeafened){
+                                DateTime currenttime2 = DateTime.Now;
+                                DateTime share_start2 = StaticFunctions.data[before.Guild.Id].usermanager[users.Id].share_start;
+                                StaticFunctions.data[before.Guild.Id].usermanager[users.Id].share_timespan += (float)(currenttime2 - share_start2).TotalMinutes;
+                                StaticFunctions.data[before.Guild.Id].usermanager[users.Id].share_start = DateTime.MinValue;
+                            }
+                            else if(!initial.IsStreaming && !users.IsSelfDeafened){
+                                DateTime currenttime2 = DateTime.Now;
+                                DateTime voice_start2 = StaticFunctions.data[before.Guild.Id].usermanager[users.Id].voice_start;
+                                StaticFunctions.data[before.Guild.Id].usermanager[users.Id].voice_timespan += (float)(currenttime2 - voice_start2).TotalMinutes;
+                                StaticFunctions.data[before.Guild.Id].usermanager[users.Id].voice_start = DateTime.MinValue;
+                            }
+                        }
+                    }
+                }
+                
                 float regular = 0;
                 float share = 0;
                 var pointsregular = (StaticFunctions.data[before.Guild.Id].vactive) / 60;
                 var pointsshare = (StaticFunctions.data[before.Guild.Id].vstream) / 60;
                 DateTime currenttime = DateTime.Now;
-                DateTime regular_start = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_start;
-                DateTime share_start = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voiceshare_start;
-                DateTime share_end = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voiceshare_end;
-                float deafened_span = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].deafened_timespan;
-                float vcshare_span = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voiceshare_timespan;
+                DateTime voice_start = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_start;
+                DateTime share_start = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_start;
+                float voice_span = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_timespan;
+                float share_span = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_timespan;
+
+
                 
-                if(share_start != DateTime.MinValue && share_end != DateTime.MinValue){
-                    regular = (float)(currenttime- regular_start).TotalMinutes - deafened_span;
-                    share = (float)(share_end - share_start).TotalMinutes + vcshare_span;
-                    regular -= share;
+                if(voice_start != DateTime.MinValue){
+                    regular = (float)(currenttime - voice_start).TotalMinutes + voice_span + share_span;
+                    share = share_span;
                 }
                 else if(share_start != DateTime.MinValue){
-                    regular = (float)(share_start - regular_start).TotalMinutes - deafened_span;
-                    share = (float)(currenttime - share_start).TotalMinutes + vcshare_span;
-                    regular -= vcshare_span;
+                    regular = voice_span;
+                    share = (float)(currenttime - share_start).TotalMinutes + voice_span + share_span;
                 }
                 else{
-                    regular = (float)(currenttime - regular_start).TotalMinutes - deafened_span;
+                    regular = voice_span;
+                    share = share_span;
                 }
 
                 StaticFunctions.data[before.Guild.Id].usermanager[user.Id].points_earned += (int) ((regular*pointsregular) + (share *pointsshare));
 
                 StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_start = DateTime.MinValue;
-                StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voiceshare_start = DateTime.MinValue;
-                StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voiceshare_end = DateTime.MinValue;
-                StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voiceshare_timespan = 0;
-                StaticFunctions.data[before.Guild.Id].usermanager[user.Id].deafened_timespan = 0;
+                StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_start = DateTime.MinValue;
+                StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_timespan = 0;
+                StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_timespan = 0;
 
             }
             //user moves voice channels
             else if(before != null && after != null && before != after){
                 if(after.Id == after.Guild.AFKChannel.Id){
-                    float timeout = (after.Guild.AFKTimeout)/60;
+                    float timeout = after.Guild.AFKTimeout / 60;
                     float regular = 0;
                     float share = 0;
                     var pointsregular = (StaticFunctions.data[before.Guild.Id].vactive) / 60;
                     var pointsshare = (StaticFunctions.data[before.Guild.Id].vstream) / 60;
                     DateTime currenttime = DateTime.Now;
-                    DateTime regular_start = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_start;
-                    DateTime share_start = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voiceshare_start;
-                    DateTime share_end = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voiceshare_end;
-                    float deafened_span = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].deafened_timespan;
-                    float vcshare_span = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voiceshare_timespan;
+                    DateTime voice_start = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_start;
+                    DateTime share_start = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_start;
+                    float voice_span = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_timespan;
+                    float share_span = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_timespan;
+
+
                     
-                    if(share_start != DateTime.MinValue && share_end != DateTime.MinValue){
-                        regular = (float)(currenttime- regular_start).TotalMinutes - deafened_span;
-                        share = (float)(share_end - share_start).TotalMinutes + vcshare_span;
-                        regular -= share;
+                    if(voice_start != DateTime.MinValue){
+                        regular = (float)(currenttime - voice_start).TotalMinutes + voice_span + share_span - timeout;
+                        share = share_span;
                     }
                     else if(share_start != DateTime.MinValue){
-                        regular = (float)(share_start - regular_start).TotalMinutes - deafened_span;
-                        share = (float)(currenttime - share_start).TotalMinutes + vcshare_span;
-                        regular -= vcshare_span;
+                        regular = voice_span;
+                        share = (float)(currenttime - share_start).TotalMinutes + voice_span + share_span - timeout;
                     }
                     else{
-                        regular = (float)(currenttime - regular_start).TotalMinutes - deafened_span;
+                        regular = voice_span;
+                        share = share_span;
                     }
 
                     StaticFunctions.data[before.Guild.Id].usermanager[user.Id].points_earned += (int) ((regular*pointsregular) + (share *pointsshare));
 
                     StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_start = DateTime.MinValue;
-                    StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voiceshare_start = DateTime.MinValue;
-                    StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voiceshare_end = DateTime.MinValue;
-                    StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voiceshare_timespan = 0;
-                    StaticFunctions.data[before.Guild.Id].usermanager[user.Id].deafened_timespan = 0;
+                    StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_start = DateTime.MinValue;
+                    StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_timespan = 0;
+                    StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_timespan = 0;
 
                 }
-                else if(before.Id == before.Guild.AFKChannel.Id){
-                    if(after.Users.Count == 2){
+                else if(before.Id == after.Guild.AFKChannel.Id){
+                    if(after.Users.Count == 2 && !final.IsSelfDeafened){
                         foreach(var users in after.Users){
                             StaticFunctions.data[after.Guild.Id].usermanager[users.Id].voice_start = DateTime.Now;
                         }
                     }
-                    else if(after.Users.Count > 2){
+                    else if(after.Users.Count == 2 && final.IsSelfDeafened){
+                        foreach(var users in after.Users){
+                            if(users.Id != user.Id){
+                                StaticFunctions.data[after.Guild.Id].usermanager[users.Id].voice_start = DateTime.Now;
+                            }
+                        }
+                    }
+                    else if(after.Users.Count > 2 && !final.IsSelfDeafened){
                         StaticFunctions.data[after.Guild.Id].usermanager[user.Id].voice_start = DateTime.Now;
                     }
                 }
-                else if(after.Users.Count == 2){
-                    foreach(var users in after.Users){
-                        StaticFunctions.data[after.Guild.Id].usermanager[users.Id].voice_start = DateTime.Now;
+                else if(after.Users.Count < 2 && (!initial.IsSelfDeafened || !final.IsSelfDeafened)){
+                    if(initial.IsStreaming){
+                        DateTime currenttime = DateTime.Now;
+                        DateTime share_start = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_start;
+                        StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_timespan += (float)(currenttime - share_start).TotalMinutes;
+                        StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_start = DateTime.MinValue;
+                    }
+                    else{
+                        DateTime currenttime = DateTime.Now;
+                        DateTime voice_start = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_start;
+                        StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_timespan += (float)(currenttime - voice_start).TotalMinutes;
+                        StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_start = DateTime.MinValue;
                     }
                 }
+                else if(after.Users.Count == 2){
+                    if(initial.IsStreaming && (!initial.IsSelfDeafened || !final.IsSelfDeafened)){
+                        DateTime currenttime = DateTime.Now;
+                        DateTime share_start = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_start;
+                        StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_timespan += (float)(currenttime - share_start).TotalMinutes;
+                        StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_start = DateTime.MinValue;
+                    }
+                    
+                    foreach(var users in after.Users){
+                        if(users.Id != user.Id){
+                            if(users.IsStreaming && !users.IsSelfDeafened){
+                                StaticFunctions.data[after.Guild.Id].usermanager[users.Id].share_start = DateTime.Now;
+                            }
+                            else if(!users.IsStreaming && !users.IsSelfDeafened){
+                                StaticFunctions.data[after.Guild.Id].usermanager[users.Id].voice_start = DateTime.Now;
+                            }
+                        }
+                    }
+
+                }
                 else if(after.Users.Count > 2){
-                    StaticFunctions.data[after.Guild.Id].usermanager[user.Id].voice_start = DateTime.Now;
+                    if(initial.IsStreaming && (!initial.IsSelfDeafened || !final.IsSelfDeafened)){
+                        DateTime currenttime = DateTime.Now;
+                        DateTime share_start = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_start;
+                        StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_timespan += (float)(currenttime - share_start).TotalMinutes;
+                        StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_start = DateTime.MinValue;
+                    }
                 }
             }
             //user state updates in same channel
             else if(before != null && after != null && before == after){
-                if(!initial.IsStreaming && final.IsStreaming){
-                    StaticFunctions.data[after.Guild.Id].usermanager[user.Id].voiceshare_start = DateTime.Now;
+                if(!initial.IsStreaming && final.IsStreaming && (!initial.IsSelfDeafened || !final.IsSelfDeafened)){
+                    StaticFunctions.data[after.Guild.Id].usermanager[user.Id].share_start = DateTime.Now;
+                    if(StaticFunctions.data[after.Guild.Id].usermanager[user.Id].voice_start != DateTime.MinValue){
+                        DateTime currenttime = DateTime.Now;
+                        DateTime voice_start = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_start;
+                        StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_timespan += (float)(currenttime - voice_start).TotalMinutes;
+                        StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_start = DateTime.MinValue;
+                    }
                 }
-                else if(initial.IsStreaming && !final.IsStreaming){
-                    DateTime currenttime = DateTime.Now;
-                    DateTime share_start = StaticFunctions.data[after.Guild.Id].usermanager[user.Id].voiceshare_start;
-                    StaticFunctions.data[after.Guild.Id].usermanager[user.Id].voiceshare_end = currenttime;
-                    StaticFunctions.data[after.Guild.Id].usermanager[user.Id].voiceshare_timespan += (float)(currenttime - share_start).TotalMinutes;
+                else if(initial.IsStreaming && !final.IsStreaming && (!initial.IsSelfDeafened || !final.IsSelfDeafened)){
+                    StaticFunctions.data[after.Guild.Id].usermanager[user.Id].voice_start = DateTime.Now;
+                    if(StaticFunctions.data[after.Guild.Id].usermanager[user.Id].share_start != DateTime.MinValue){
+                        DateTime currenttime = DateTime.Now;
+                        DateTime share_start = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_start;
+                        StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_timespan += (float)(currenttime - share_start).TotalMinutes;
+                        StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_start = DateTime.MinValue;
+                    }
                 }
                 else if(!initial.IsSelfDeafened && final.IsSelfDeafened){
-                    StaticFunctions.data[after.Guild.Id].usermanager[user.Id].deafened_start = DateTime.Now;
+                    if(initial.IsStreaming){
+                        DateTime currenttime = DateTime.Now;
+                        DateTime share_start = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_start;
+                        StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_timespan += (float)(currenttime - share_start).TotalMinutes;
+                        StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_start = DateTime.MinValue;
+                    }
+                    else{
+                        DateTime currenttime = DateTime.Now;
+                        DateTime voice_start = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_start;
+                        StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_timespan += (float)(currenttime - voice_start).TotalMinutes;
+                        StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_start = DateTime.MinValue;
+                    }
                 }
                 else if(initial.IsSelfDeafened && !final.IsSelfDeafened){
-                    DateTime currenttime = DateTime.Now;
-                    DateTime deafened_start = StaticFunctions.data[after.Guild.Id].usermanager[user.Id].deafened_start;
-                    StaticFunctions.data[after.Guild.Id].usermanager[user.Id].deafened_timespan += (float)(currenttime - deafened_start).TotalMinutes;
+                    if(initial.IsStreaming){
+                        StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_start = DateTime.Now;
+                    }
+                    else{
+                        StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_start = DateTime.Now;
+                    }
                 }
             }
 
