@@ -30,14 +30,14 @@ namespace TreeTrunk.Modules{
         
         [Command("poll")]
         [Summary("Can have 2-20 options. How to use: \"poll <title> <option1> <option2> <option3>...\"")]
-        public async Task PollAsync(params string[] objects){
+        public Task PollAsync(params string[] objects){
             var m = Context.Message;
             var reactions = new List<IEmote>();
-            await m.DeleteAsync();
+            m.DeleteAsync();
 
             if(objects.Length > 21 || objects.Length < 3){
-                await ReplyAsync(":bar_chart: Polls can only have 2-20 options",false);
-                return;
+                ReplyAsync(":bar_chart: Polls can only have 2-20 options",false);
+                return Task.CompletedTask;
             }          
             
             string desc = "";
@@ -53,13 +53,9 @@ namespace TreeTrunk.Modules{
                 Description = desc
             };
             //bar_chart emoji
-            var message = await ReplyAsync("\U0001F4CA Poll!",false,builder.Build());
-            reactionadder(message,reactions);
-            
-        }
-
-        private async void reactionadder(IUserMessage m, List<IEmote> reactions){
-            await m.AddReactionsAsync(reactions.ToArray());
+            var message = ReplyAsync("\U0001F4CA Poll!",false,builder.Build()).Result;
+            message.AddReactionsAsync(reactions.ToArray());
+            return Task.CompletedTask;
         }
     }
 }

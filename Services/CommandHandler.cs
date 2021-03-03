@@ -7,6 +7,7 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using TreeTrunk.DataObjects;
+using System.Threading;
 
 namespace TreeTrunk.Services{
     public partial class CommandHandler{
@@ -21,7 +22,7 @@ namespace TreeTrunk.Services{
             _discord = services.GetRequiredService<DiscordSocketClient>();
             _config = services.GetRequiredService<IConfigurationRoot>();
             _services = services;
-
+            
             _commands.CommandExecuted += CommandExecutedAsync; // handles commands if successful or unsuccessful
             _discord.MessageReceived += MessageReceivedAsync; // AR changes, money changes, stats
             _discord.GuildMemberUpdated += ActivityAsync; // AR changes, money Changes, stats, 

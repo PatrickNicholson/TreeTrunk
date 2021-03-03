@@ -13,9 +13,9 @@ namespace TreeTrunk.DataObjects{
         public DateTime last_active;
         public DateTime voice_start;
         public DateTime share_start;
-        public float voice_timespan;
-        public float share_timespan;
-        public readonly DateTime profilecreated;
+        public double voice_timespan;
+        public double share_timespan;
+        public DateTime profilecreated;
 
         public Profile(ulong Id, string Name){
             name = Name;
@@ -34,5 +34,6 @@ namespace TreeTrunk.DataObjects{
             share_timespan = 0;
             voice_timespan = 0;
         }
+
     }
 }

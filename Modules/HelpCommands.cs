@@ -45,16 +45,16 @@ namespace TreeTrunk.Modules{
 
             await ReplyAsync("", false, builder.Build());
         }
-
+/*
         [Command("help")]
         [Alias("h")]
-        public async Task HelpAsync(string command)
+        public Task HelpAsync(string command)
         {
             var result = _commands.Search(Context, command);
 
             if (!result.IsSuccess){
-                await ReplyAsync($"Sorry, I couldn't find a command like **{command}**.");
-                return;
+                ReplyAsync($"Sorry, I couldn't find a command like **{command}**.");
+                return Task.CompletedTask;
             }
             var builder = new EmbedBuilder(){
                 Color = Color.DarkGreen,
@@ -73,9 +73,10 @@ namespace TreeTrunk.Modules{
                 });
             }
 
-            await ReplyAsync("", false, builder.Build());
+            ReplyAsync("", false, builder.Build());
+            return Task.CompletedTask;
         }
-
+*/
         [Command("ahelp")]
         [Alias("ah")]
         [RequireUserPermission(GuildPermission.Administrator)]
@@ -104,8 +105,6 @@ namespace TreeTrunk.Modules{
 
             await ReplyAsync("", false, builder.Build());
         }
-
-
 
     }
 }

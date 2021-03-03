@@ -25,6 +25,7 @@ namespace TreeTrunk{
             StaticFunctions.services = services;
             //hook into logging service
             var client = services.GetRequiredService<DiscordSocketClient>();
+            await client.DownloadUsersAsync(client.Guilds);
             client.Log += LogAsync;
             client.Ready += StaticFunctions.InitializeData;
             services.GetRequiredService<CommandService>().Log += LogAsync;
@@ -34,15 +35,6 @@ namespace TreeTrunk{
             string discordToken = config["Token"];
             if (string.IsNullOrWhiteSpace(discordToken))
                 throw new Exception("Please enter your bot's token into the `config.json` file.");
-            
-            var data = StaticFunctions.data;
-
-            await StaticFunctions.LoadGuildData();
-            TaskSchedule.Instance.ScheduleTask(23, 59, 24, () 
-                => StaticFunctions.WriteGuildData());
-            //execute AR update
-            TaskSchedule.Instance.ScheduleTask(23, 54, 24, async () 
-                => await StaticFunctions.UpdateAR());
     
             await client.LoginAsync(TokenType.Bot, discordToken);
             await client.StartAsync();
@@ -68,7 +60,6 @@ namespace TreeTrunk{
             service.AddSingleton<DiscordSocketClient>()
                 .AddSingleton<CommandService>()
                 .AddSingleton<CommandHandler>()
-                //.AddSingleton<StaticFunctions>()
                 .AddSingleton<HttpClient>();
         }
     }
