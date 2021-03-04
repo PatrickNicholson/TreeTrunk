@@ -68,12 +68,11 @@ namespace TreeTrunk.Services{
             if(user.IsBot) return Task.CompletedTask;
             var before = initial.VoiceChannel;
             var after = final.VoiceChannel;
-
-            
-            DateTime voice_start = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_start;
-            DateTime share_start = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_start;            
+          
             
             if(before == null && after != null){
+                DateTime voice_start = StaticFunctions.data[after.Guild.Id].usermanager[user.Id].voice_start;
+                DateTime share_start = StaticFunctions.data[after.Guild.Id].usermanager[user.Id].share_start; 
                 var after_bots = 0;
                 foreach(var users in after.Users){
                     if(users.IsBot){
@@ -98,6 +97,8 @@ namespace TreeTrunk.Services{
                 }
             }
             else if(before != null && after != null && before != after){
+                DateTime voice_start = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_start;
+                DateTime share_start = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_start; 
                 var after_bots = 0;
                 foreach(var users in after.Users){
                     if(users.IsBot){
@@ -130,6 +131,8 @@ namespace TreeTrunk.Services{
                 }
             }
             else if(before != null && after != null && before == after){
+                DateTime voice_start = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_start;
+                DateTime share_start = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_start; 
                 if(!initial.IsStreaming && final.IsStreaming){
                     if((!final.IsSelfDeafened && !final.IsSelfMuted)){
                         StaticFunctions.data[after.Guild.Id].usermanager[user.Id].share_start = DateTime.Now;
@@ -172,6 +175,8 @@ namespace TreeTrunk.Services{
                 }
             }
             else if(before != null && after == null){
+                DateTime voice_start = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_start;
+                DateTime share_start = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_start; 
                 var before_bots = 0;
                 foreach(var users in before.Users){
                     if(users.IsBot){
