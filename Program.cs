@@ -25,7 +25,6 @@ namespace TreeTrunk{
             StaticFunctions.services = services;
             //hook into logging service
             var client = services.GetRequiredService<DiscordSocketClient>();
-            await client.DownloadUsersAsync(client.Guilds);
             client.Log += LogAsync;
             client.Ready += StaticFunctions.InitializeData;
             services.GetRequiredService<CommandService>().Log += LogAsync;

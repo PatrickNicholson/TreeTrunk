@@ -18,7 +18,7 @@ namespace TreeTrunk{
         public static ConcurrentDictionary<ulong, GuildData> data = new ConcurrentDictionary<ulong, GuildData>();
 
         public static IServiceProvider services;
-        
+
         //loads saved data into memory on startup
         public static void LoadGuildData(){
             string json = File.ReadAllText("data.json");
@@ -34,9 +34,10 @@ namespace TreeTrunk{
             Console.WriteLine(DateTime.Now.ToString() + ": Saved Data");
         }
 
-        public static Task InitializeData(){
-            var _discord = services.GetRequiredService<DiscordSocketClient>();
+        public async static Task InitializeData(){
+            var _discord = services.GetRequiredService<DiscordSocketClient>(); 
             var context = _discord.Guilds;
+            await _discord.DownloadUsersAsync(context);
             LoadGuildData();
             lock(data){
                 var d = data;
@@ -56,7 +57,7 @@ namespace TreeTrunk{
             TaskSchedule.Instance.ScheduleTask(23, 59, 24, async () 
                 => await UpdateAR());
             _discord.Ready -= StaticFunctions.InitializeData;
-            return Task.CompletedTask;
+            return;
         }
 
         public static Task UpdateAR(){
