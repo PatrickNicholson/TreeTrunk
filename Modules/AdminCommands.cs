@@ -4,8 +4,6 @@ using Microsoft.Extensions.Configuration;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
-using System.Collections.Generic;
-using System.Linq;
 
 
 namespace TreeTrunk.Modules{
@@ -46,9 +44,6 @@ namespace TreeTrunk.Modules{
             
             StaticFunctions.data[guild].prefix = text;
 
-            //await StaticFunctions.WriteConfig("prefix",text);
-            //_config["prefix"] = text;
-
             ReplyAsync("Changed prefix to: " + text);
             return Task.CompletedTask;
         }
@@ -75,7 +70,7 @@ namespace TreeTrunk.Modules{
 
         [Command("setstreamrole")]
         [Alias("sst")]
-        [Summary("Reads all previous messages in server and collects them for statistics")]
+        [Summary("sets the role to use when a user starts streaming")]
         [RequireUserPermission(GuildPermission.Administrator)]
         public Task SetStreamerRole([Remainder] string text){
             
@@ -84,7 +79,6 @@ namespace TreeTrunk.Modules{
             bool found = false;
             foreach(var role in roles){
                 if(String.Equals(role.Name, text, StringComparison.CurrentCultureIgnoreCase)){
-                    //StaticFunctions.AddGuildData(Context.Guild.Id, "StreamerRole", role.Id);
                     StaticFunctions.data[Context.Guild.Id].streamrole = role.Id;
                     found = true;
                 }

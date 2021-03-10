@@ -45,38 +45,7 @@ namespace TreeTrunk.Modules{
 
             await ReplyAsync("", false, builder.Build());
         }
-/*
-        [Command("help")]
-        [Alias("h")]
-        public Task HelpAsync(string command)
-        {
-            var result = _commands.Search(Context, command);
 
-            if (!result.IsSuccess){
-                ReplyAsync($"Sorry, I couldn't find a command like **{command}**.");
-                return Task.CompletedTask;
-            }
-            var builder = new EmbedBuilder(){
-                Color = Color.DarkGreen,
-                Description = $"Here are some commands like **{command}**"
-            };
-
-            foreach (var match in result.Commands){
-                var cmd = match.Command;
-
-                builder.AddField(x =>
-                {
-                    x.Name = string.Join(", ", cmd.Aliases);
-                    x.Value = $"Parameters: {string.Join(", ", cmd.Parameters.Select(p => p.Name))}\n" + 
-                              $"Summary: {cmd.Summary}";
-                    x.IsInline = false;
-                });
-            }
-
-            ReplyAsync("", false, builder.Build());
-            return Task.CompletedTask;
-        }
-*/
         [Command("ahelp")]
         [Alias("ah")]
         [RequireUserPermission(GuildPermission.Administrator)]

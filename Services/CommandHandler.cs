@@ -23,12 +23,12 @@ namespace TreeTrunk.Services{
             _config = services.GetRequiredService<IConfigurationRoot>();
             _services = services;
             
-            _commands.CommandExecuted += CommandExecutedAsync; // handles commands if successful or unsuccessful
-            _discord.MessageReceived += MessageReceivedAsync; // AR changes, money changes, stats
-            _discord.GuildMemberUpdated += ActivityAsync; // AR changes, money Changes, stats, 
-            _discord.UserJoined += UserJoinAsync; // Assigns default role
-            _discord.UserLeft += UserLeftAsync; // notifies when someone left the server
-            _discord.UserVoiceStateUpdated += UserVoiceStateUpdatedAsync; // AR changes, money changes,
+            _commands.CommandExecuted += CommandExecutedAsync;
+            _discord.MessageReceived += MessageReceivedAsync;
+            _discord.GuildMemberUpdated += ActivityAsync; 
+            _discord.UserJoined += UserJoinAsync;
+            _discord.UserLeft += UserLeftAsync;
+            _discord.UserVoiceStateUpdated += UserVoiceStateUpdatedAsync;
         }
 
         public async Task InitializeAsync(){
@@ -44,7 +44,8 @@ namespace TreeTrunk.Services{
             if(!message.HasStringPrefix(StaticFunctions.data[guild].prefix, ref argPos)){
                 await messagehandler(rawMessage, context);
                 return;
-            } 
+            }
+            Console.WriteLine(DateTime.Now.ToString() + ": A command was executed.");
             await _commands.ExecuteAsync(context, argPos, _services);
         }
 
