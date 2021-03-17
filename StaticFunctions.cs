@@ -62,14 +62,22 @@ namespace TreeTrunk{
             var context = services.GetRequiredService<DiscordSocketClient>();
             var data_copy = data;
             foreach(KeyValuePair<ulong, GuildData> guild in data_copy){
-                var max_AR = guild.Value.armax;
-                var min_AR = guild.Value.armin;
-                var max_MMR = guild.Value.max_player_mmr;
-                var decay_value = guild.Value.decay;
+
+                
                 var guildcomms = context.GetGuild(guild.Key);
 
+                if(guildcomms == null){
+                    data.Remove(guild.Key, out var x);
+                    continue;
+                }
+                double max_AR = Convert.ToDouble(guild.Value.armax);
+                double min_AR = Convert.ToDouble(guild.Value.armin);
+                double max_MMR = Convert.ToDouble(guild.Value.max_player_mmr);
+                double decay_value = Convert.ToDouble(guild.Value.decay);
+                
 
                 var ranks = new Dictionary<ulong,int>(){
+                    {guild.Value.quickplay,guild.Value.armin},
                     {guild.Value.bronze,guild.Value.bronze_ar},
                     {guild.Value.silver,guild.Value.silver_ar},
                     {guild.Value.gold,guild.Value.gold_ar},
@@ -83,13 +91,17 @@ namespace TreeTrunk{
 
                 TimeSpan placements = guild.Value.placementtime;
 
-                Console.WriteLine(DateTime.Now.ToString() + "max_MMR: " + max_MMR.ToString());
-                Console.WriteLine(DateTime.Now.ToString() + "min_AR: " + min_AR.ToString());
-                Console.WriteLine(DateTime.Now.ToString() + "max_AR: " + max_AR.ToString());
                 Console.WriteLine(DateTime.Now.ToString() + ": Updating User Ranks");
-                int max = 0;
+                double max = 0;
                 foreach(KeyValuePair<ulong, Profile> user in guild.Value.usermanager){
                     
+                    if(guildcomms.GetUser(user.Key) == null){
+                        data[guild.Key].usermanager.Remove(user.Key);
+                        continue;
+                    }
+
+
+
                     var roles = context.GetGuild(guild.Key).GetUser(user.Key).Roles;
                     if(roles == null){
                         continue;
@@ -110,38 +122,29 @@ namespace TreeTrunk{
                         DateTime share_start = user.Value.share_start;
                         double pointsregular = (guild.Value.vactive) / 60.0d;
                         double pointsshare = (guild.Value.vstream) / 60.0d;
-                        double regular = user.Value.voice_timespan;
-                        double share = user.Value.share_timespan;
 
                         if(voice_start != DateTime.MinValue){
-                            regular += (currenttime - voice_start).TotalMinutes + share;
+                            extra = Convert.ToInt32((currenttime - voice_start).TotalMinutes*pointsshare);
                             data[guild.Key].usermanager[user.Key].voice_start = currenttime;
-                            data[guild.Key].usermanager[user.Key].share_timespan = 0;
                         }
                         if(share_start != DateTime.MinValue){
-                            share += (currenttime - share_start).TotalMinutes + regular;
+                            extra = Convert.ToInt32((currenttime - share_start).TotalMinutes*pointsregular);
                             data[guild.Key].usermanager[user.Key].share_start = currenttime;
-                            data[guild.Key].usermanager[user.Key].voice_timespan = 0;
                         }
-                        extra = Convert.ToInt32((regular*pointsregular) + (share*pointsshare));
                     }
                     
-                    var points_gained = user.Value.points_earned + extra;
-                    var mmr = user.Value.activityrating;
-                    Console.WriteLine(DateTime.Now.ToString() + "MMR Before: " + mmr.ToString());
-                    Console.WriteLine(DateTime.Now.ToString() + "Points Gained: " + points_gained.ToString());
-                    mmr += points_gained*(1-(mmr/max_MMR));
-                    mmr += points_gained*(1-(mmr/max_AR));
-                    mmr -= (decay_value*((((mmr - min_AR)/max_AR))*((mmr - min_AR)/max_AR)));
+                    double points_gained = Convert.ToDouble(user.Value.points_earned + extra);
+                    double mmr = Convert.ToDouble(user.Value.activityrating);
 
-                    Console.WriteLine(DateTime.Now.ToString() + "MMR After: " + mmr.ToString());
+                    mmr += (points_gained*(1-(mmr/max_MMR))) + (points_gained*(1-(mmr/max_AR))) - (decay_value*((((mmr - min_AR)/max_AR))*((mmr - min_AR)/max_AR)));
+                    
 
                     if(mmr > max_AR) mmr = max_AR;
                     else if(mmr < min_AR) mmr = min_AR;
 
                     
 
-                    data[guild.Key].usermanager[user.Key].activityrating = mmr;
+                    data[guild.Key].usermanager[user.Key].activityrating = Convert.ToInt32(mmr);
                     data[guild.Key].usermanager[user.Key].points_earned = 0;
 
                     if(mmr > max) max = mmr;
@@ -161,35 +164,34 @@ namespace TreeTrunk{
                     }
                     else{
                         Console.WriteLine(DateTime.Now.ToString() + ": RANKED - " + user.Value.name);
+
                         if(roles.Contains(guildcomms.GetRole(guild.Value.unranked))){
                             guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.unranked));
-                        }                           
-                        for(int i = 0; i < ranks.Count(); i++){
-                            if(i == 0 && !roles.Contains(guildcomms.GetRole(rank.ElementAt(i))) && mmr <= ar_ranks.ElementAt(i)){
-                                guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(rank.ElementAt(i)));
-                                if(roles.Contains(guildcomms.GetRole(rank.ElementAt(i+1)))){
-                                    guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(rank.ElementAt(i+1)));
+                        }
+                        if(!roles.Contains(guildcomms.GetRole(guild.Value.quickplay)) && mmr == 1){
+                            guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(guild.Value.quickplay));
+                            foreach(var role in roles){
+                                if(ranks.ContainsKey(role.Id)){
+                                    guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(role.Id));
                                 }
                             }
-                            else if(i+1 >= ranks.Count() && !roles.Contains(guildcomms.GetRole(rank.ElementAt(i))) && mmr > ar_ranks.ElementAt(i-1)){
-                                guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(rank.ElementAt(i)));
-                                if(roles.Contains(guildcomms.GetRole(rank.ElementAt(i-1)))){
-                                    guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(rank.ElementAt(i-1)));
-                                }
-                            }
-                            else if(!roles.Contains(guildcomms.GetRole(rank.ElementAt(i))) && mmr > ar_ranks.ElementAt(i-1) && mmr <= ar_ranks.ElementAt(i)){
-                                guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(rank.ElementAt(i)));
-                                if(roles.Contains(guildcomms.GetRole(rank.ElementAt(i-1)))){
-                                    guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(rank.ElementAt(i-1)));
-                                }
-                                if(roles.Contains(guildcomms.GetRole(rank.ElementAt(i+1)))){
-                                    guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(rank.ElementAt(i+1)));
+                        }
+                        else{
+                            for(int i = 1; i < ranks.Count(); i++){
+                                if(!roles.Contains(guildcomms.GetRole(rank.ElementAt(i))) &&  mmr > ar_ranks.ElementAt(i-1) && mmr <= ar_ranks.ElementAt(i)){
+                                    guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(rank.ElementAt(i)));
+                                    foreach(var role in roles){
+                                        if(ranks.ContainsKey(role.Id)){
+                                            guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(role.Id));
+                                            Console.WriteLine(rank.ElementAt(i));
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
                 }
-                data[guild.Key].max_player_mmr = max;
+                data[guild.Key].max_player_mmr = Convert.ToInt32(max);
             }
             WriteGuildData();
             Console.WriteLine(DateTime.Now.ToString() + ": Finished Updating User Ranks");
