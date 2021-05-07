@@ -29,6 +29,7 @@ namespace TreeTrunk.Services{
             _discord.UserJoined += UserJoinAsync;
             _discord.UserLeft += UserLeftAsync;
             _discord.UserVoiceStateUpdated += UserVoiceStateUpdatedAsync;
+            //_discord.ReactionAdded += ReactionAsync;
         }
 
         public async Task InitializeAsync(){

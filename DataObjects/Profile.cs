@@ -4,8 +4,9 @@ namespace TreeTrunk.DataObjects{
         public string name;
         public ulong id;
         public ulong money;
-        public double voiceminutetotal;
-        public double messagetotal;
+        public ulong voiceminutetotal;
+        public ulong messagetotal;
+        public ulong reactions;
         public int activityrating;
         public int points_earned;
         public DateTime last_message;
@@ -14,6 +15,7 @@ namespace TreeTrunk.DataObjects{
         public DateTime voice_start;
         public DateTime share_start;
         public DateTime profilecreated;
+        public DateTime total_voiceminute_marker;
 
         public Profile(ulong Id, string Name){
             name = Name;
@@ -29,6 +31,7 @@ namespace TreeTrunk.DataObjects{
             last_active = DateTime.MinValue;
             voice_start = DateTime.MinValue;
             share_start = DateTime.MinValue;
+            total_voiceminute_marker = DateTime.MinValue;
         }
 
     }

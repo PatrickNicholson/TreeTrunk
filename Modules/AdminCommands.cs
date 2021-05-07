@@ -43,7 +43,7 @@ namespace TreeTrunk.Modules{
             m.DeleteAsync();
             
             StaticFunctions.data[guild].prefix = text;
-
+            
             ReplyAsync("Changed prefix to: " + text);
             return Task.CompletedTask;
         }
@@ -100,7 +100,15 @@ namespace TreeTrunk.Modules{
             return Task.CompletedTask;
         }
 
-
+        [Command("save")]
+        [Alias("s")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public Task save(){                       
+            var m = Context.Message;
+            m.DeleteAsync();
+            StaticFunctions.WriteGuildData();
+            return Task.CompletedTask;
+        }
 
         // [Command("retrofit")]
         // [Summary("Reads all previous messages in server and collects them for statistics")]

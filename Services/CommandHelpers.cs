@@ -20,6 +20,14 @@ namespace TreeTrunk.Services{
             if(attach > 0) points += StaticFunctions.data[context.Guild.Id].attach;
             
             StaticFunctions.data[context.Guild.Id].usermanager[rawMessage.Author.Id].points_earned += points;
+            if(StaticFunctions.data[context.Guild.Id].channelmessages.ContainsKey(context.Channel.Id)){
+                StaticFunctions.data[context.Guild.Id].channelmessages[context.Channel.Id]++;
+                StaticFunctions.data[context.Guild.Id].usermanager[context.User.Id].messagetotal ++;
+            }
+            else{
+                StaticFunctions.data[context.Guild.Id].channelmessages.Add(context.Channel.Id, 1);
+                StaticFunctions.data[context.Guild.Id].usermanager[context.User.Id].messagetotal ++;
+            }
 
             return Task.CompletedTask;
         }

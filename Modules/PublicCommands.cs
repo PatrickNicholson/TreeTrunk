@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using Discord;
 using Discord.Commands;
+using TreeTrunk.DataObjects;
 
 
 namespace TreeTrunk.Modules{
@@ -57,5 +58,78 @@ namespace TreeTrunk.Modules{
             message.AddReactionsAsync(reactions.ToArray());
             return Task.CompletedTask;
         }
+
+
+        [Command("nextrank")]
+        [Alias("nr")]
+        [Summary("replys with percentage till next rank")]
+        public Task NextRank(){
+            var m = Context.Message;
+            
+            var ar = StaticFunctions.data[Context.Guild.Id].usermanager[m.Author.Id].activityrating;
+            var ranks = new List<int>{
+                StaticFunctions.data[Context.Guild.Id].armin,
+                StaticFunctions.data[Context.Guild.Id].bronze_ar,
+                StaticFunctions.data[Context.Guild.Id].silver_ar,
+                StaticFunctions.data[Context.Guild.Id].gold_ar,
+                StaticFunctions.data[Context.Guild.Id].plat_ar,
+                StaticFunctions.data[Context.Guild.Id].diamond_ar,
+                StaticFunctions.data[Context.Guild.Id].master_ar,
+                StaticFunctions.data[Context.Guild.Id].gm_ar};
+
+            for(int i = 1; i < ranks.Count; i++){
+                if(ar <= ranks[i]){
+                    var percent = 100 - (((ranks[i]-ar)*100) / (ranks[i] - ranks[i-1]));
+                    ReplyAsync("**" + m.Author.Username.ToString() + "** you are " + percent.ToString() + "% in your current rank.",false);
+                    break;
+                }
+            }
+            return Task.CompletedTask;
+        }
+
+        // [Command("top10")]
+        // [Summary("Displays the top10 ranked users.")]
+        // public Task TopTen(){
+        //     var m = Context.Message;
+            
+        //     var memberlist = StaticFunctions.data[Context.Guild.Id].usermanager;
+
+        //     string desc = "";
+        //     var members = new List<Profile>();
+        //     foreach(var member in memberlist){
+        //         var currentAR = member.Value.activityrating;
+        //         for(var i = 0; i < members.Count ; i++ ){
+        //             if(currentAR >= members[i].activityrating){
+        //                 members.Insert(i,member.Value);
+        //                 break;
+        //             }
+        //             else if(currentAR){
+
+        //             }
+        //         }
+        //         if(members.Count >= 10){
+        //             break;
+        //         }
+        //     }
+            
+            
+            
+        //     for(int i = 1; i < members.Length; i++){
+        //         desc +=  emojisA_J[i-1] + " " + objects[i] + "\n";
+        //         reactions.Add(new Emoji(emojisA_J[i-1]));
+        //     }
+            
+
+        //     var builder = new EmbedBuilder(){
+        //         Title = objects[0],
+        //         Color = Color.DarkGreen,
+        //         Description = desc
+        //     };
+        //     //bar_chart emoji
+        //     var message = ReplyAsync("\U0001F4CA Poll!",false,builder.Build()).Result;
+
+
+        //     return Task.CompletedTask;
+        // }
     }
 }

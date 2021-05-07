@@ -7,7 +7,16 @@ using System.Linq;
 
 namespace TreeTrunk.Services{
     public partial class CommandHandler{
+        // private async Task ReactionAsync(Cacheable<IUserMessage, ulong> cachedMessage, ISocketMessageChannel messageChannel, SocketReaction reaction){
+        //     var message = await cachedMessage.GetOrDownloadAsync();
+        //     var reacts = message.Reactions.Count();
+        //     await message.;
+        //     if(reacts >= StaticFunctions.data[]){
+
+        //     }
             
+        // }
+
         private Task ActivityAsync(SocketGuildUser initial, SocketGuildUser final){           
             if(initial.IsBot || final.IsBot) return Task.CompletedTask;
 
@@ -20,9 +29,14 @@ namespace TreeTrunk.Services{
                 }
             }
             ActivityType finalAct = ActivityType.CustomStatus;
+            string service = "";
+            string url = "";
             foreach(var activity in final.Activities){
                 if(activity.Type == ActivityType.Streaming){
                     finalAct = ActivityType.Streaming;
+                    StreamingGame activitytemp = activity as StreamingGame;
+                    service = activitytemp.Name;
+                    url = activitytemp.Url;                    
                 }
             }
             
@@ -32,11 +46,15 @@ namespace TreeTrunk.Services{
             
             if(streamerrole != null && (initialAct == ActivityType.Streaming || finalAct == ActivityType.Streaming)){
                 if(initialAct != ActivityType.Streaming && finalAct == ActivityType.Streaming && !roles.Contains(streamerrole)){
-                    Console.WriteLine(DateTime.Now.ToString() + ": " + initial.Username.ToString() + " started streaming.");
+                    //Console.WriteLine(DateTime.Now.ToString() + ": " + final.Username.ToString() + " started streaming.");
                     final.AddRoleAsync(streamerrole);
+                    
+                    ulong adchannel = StaticFunctions.data[final.Guild.Id].adchat;    
+                    var chnl =  final.Guild.GetChannel(adchannel) as IMessageChannel;
+                    chnl.SendMessageAsync("**" + final.Username.ToString() + "** is currently streaming on " + service + "! Check it out: " + url);
                 }
                 else if(initialAct == ActivityType.Streaming && finalAct != ActivityType.Streaming && roles.Contains(streamerrole)){
-                    Console.WriteLine(DateTime.Now.ToString() + ": " + initial.Username.ToString() + " stopped streaming.");
+                    //Console.WriteLine(DateTime.Now.ToString() + ": " + initial.Username.ToString() + " stopped streaming.");
                     final.RemoveRoleAsync(streamerrole);
                 }
             }
@@ -46,7 +64,7 @@ namespace TreeTrunk.Services{
 
         private Task UserJoinAsync(SocketGuildUser user){
             if(user.IsBot) return Task.CompletedTask;
-            Console.WriteLine(DateTime.Now.ToString() + ": " + user.Username.ToString() + " joined the guild.");
+            //Console.WriteLine(DateTime.Now.ToString() + ": " + user.Username.ToString() + " joined the guild.");
             ulong defaultrole = StaticFunctions.data[user.Guild.Id].unranked;
             StaticFunctions.data[user.Guild.Id].usermanager.TryAdd(user.Id,new Profile(user.Id,user.Username));
             user.AddRoleAsync(user.Guild.GetRole(defaultrole));
@@ -55,32 +73,45 @@ namespace TreeTrunk.Services{
 
         private Task UserLeftAsync(SocketGuildUser user){
             if(user.IsBot) return Task.CompletedTask;
-            Console.WriteLine(DateTime.Now.ToString() + ": " + user.Username.ToString() + " left the guild.");
+            //Console.WriteLine(DateTime.Now.ToString() + ": " + user.Username.ToString() + " left the guild.");
             ulong modchannel = StaticFunctions.data[user.Guild.Id].modchat;    
             var chnl =  user.Guild.GetChannel(modchannel) as IMessageChannel;
             chnl.SendMessageAsync(user.Username.ToString() + " has left the discord.");
             return Task.CompletedTask;
         }
 
-        
         private Task UserVoiceStateUpdatedAsync(SocketUser user, SocketVoiceState initial, SocketVoiceState final){
             if(user.IsBot) return Task.CompletedTask;
             var before = initial.VoiceChannel;
             var after = final.VoiceChannel;
-          
+            
             
             if(before == null && after != null){
-                Console.WriteLine(DateTime.Now.ToString() + ": " + user.Username.ToString() + " joined voice.");
+                //Console.WriteLine(DateTime.Now.ToString() + ": " + user.Username.ToString() + " joined voice.");
                 VoiceStart(after.Guild.Id, after.Guild.AFKChannel.Id,final,user,final.IsStreaming);
+                StaticFunctions.data[after.Guild.Id].usermanager[user.Id].total_voiceminute_marker = DateTime.Now;
             }
             else if(before != null && after != null && before != after){
-                Console.WriteLine(DateTime.Now.ToString() + ": " + user.Username.ToString() + " moved voicechats.");
+                //Console.WriteLine(DateTime.Now.ToString() + ": " + user.Username.ToString() + " moved voicechats.");
                 VoiceEnd(before.Guild.Id,before,user,initial.IsStreaming);
                 VoiceStart(after.Guild.Id,after.Guild.AFKChannel.Id,final,user,final.IsStreaming);
+
+                DateTime currenttime = DateTime.Now;
+                DateTime userstart = StaticFunctions.data[after.Guild.Id].usermanager[user.Id].total_voiceminute_marker;
+                if(userstart != DateTime.MinValue){
+                    if(StaticFunctions.data[after.Guild.Id].voicechatminutes.ContainsKey(initial.VoiceChannel.Id)){
+                        StaticFunctions.data[after.Guild.Id].voicechatminutes[initial.VoiceChannel.Id] += Convert.ToUInt64((currenttime - userstart).TotalMinutes);
+                    }
+                    else{
+                        StaticFunctions.data[after.Guild.Id].voicechatminutes.Add(initial.VoiceChannel.Id, Convert.ToUInt64((currenttime - userstart).TotalMinutes));
+                    }
+                }
+                StaticFunctions.data[after.Guild.Id].usermanager[user.Id].total_voiceminute_marker = DateTime.Now;
+
             }
             else if(before != null && after != null && before == after){
                 if(!initial.IsStreaming && final.IsStreaming){
-                    Console.WriteLine(DateTime.Now.ToString() + ": " + user.Username.ToString() + " started sharing screens.");
+                    //Console.WriteLine(DateTime.Now.ToString() + ": " + user.Username.ToString() + " started sharing screens.");
                     if((!final.IsSelfDeafened && !final.IsSelfMuted)){
                         DateTime currenttime = DateTime.Now;
                         DateTime voice_start = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_start;
@@ -88,13 +119,13 @@ namespace TreeTrunk.Services{
                         if(voice_start != DateTime.MinValue){
                             double pointsregular = (StaticFunctions.data[before.Guild.Id].vactive) / 60.0d;
                             StaticFunctions.data[before.Guild.Id].usermanager[user.Id].points_earned += Convert.ToInt32((currenttime - voice_start).TotalMinutes *pointsregular);
-                            Console.WriteLine("Total Points earned regular: " + StaticFunctions.data[before.Guild.Id].usermanager[user.Id].points_earned.ToString());
+                            //Console.WriteLine("Total Points earned regular: " + StaticFunctions.data[before.Guild.Id].usermanager[user.Id].points_earned.ToString());
                             StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voice_start = DateTime.MinValue;
                         }
                     }
                 }
                 else if(initial.IsStreaming && !final.IsStreaming){
-                    Console.WriteLine(DateTime.Now.ToString() + ": " + user.Username.ToString() + " stopped sharing screens.");
+                    //Console.WriteLine(DateTime.Now.ToString() + ": " + user.Username.ToString() + " stopped sharing screens.");
                     if((!final.IsSelfDeafened && !final.IsSelfMuted)){
                         DateTime currenttime = DateTime.Now;
                         DateTime share_start = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_start; 
@@ -102,29 +133,42 @@ namespace TreeTrunk.Services{
                         if(share_start != DateTime.MinValue){
                             double pointsshare = (StaticFunctions.data[before.Guild.Id].vstream) / 60.0d;
                             StaticFunctions.data[before.Guild.Id].usermanager[user.Id].points_earned += Convert.ToInt32((currenttime - share_start).TotalMinutes *pointsshare);
-                             Console.WriteLine("Total Points earned sharing: " + StaticFunctions.data[before.Guild.Id].usermanager[user.Id].points_earned.ToString());
+                            //Console.WriteLine("Total Points earned sharing: " + StaticFunctions.data[before.Guild.Id].usermanager[user.Id].points_earned.ToString());
                             StaticFunctions.data[before.Guild.Id].usermanager[user.Id].share_start = DateTime.MinValue;
                         }
                     }
                 }
                 else if((!initial.IsSelfDeafened && final.IsSelfDeafened) || (!initial.IsSelfMuted && final.IsSelfMuted)){
-                    Console.WriteLine(DateTime.Now.ToString() + ": " + user.Username.ToString() + " muted or deafened.");
+                    //Console.WriteLine(DateTime.Now.ToString() + ": " + user.Username.ToString() + " muted or deafened.");
                     VoiceEnd(before.Guild.Id, before,user,initial.IsStreaming);
                 }
                 else if((initial.IsSelfDeafened && !final.IsSelfDeafened) || (initial.IsSelfMuted && !final.IsSelfMuted)){
-                    Console.WriteLine(DateTime.Now.ToString() + ": " + user.Username.ToString() + " unmuted or undeafened.");
+                    //Console.WriteLine(DateTime.Now.ToString() + ": " + user.Username.ToString() + " unmuted or undeafened.");
                     VoiceStart(before.Guild.Id,after.Guild.AFKChannel.Id, final,user,final.IsStreaming);
                 }
             }
             else if(before != null && after == null){
-                Console.WriteLine(DateTime.Now.ToString() + ": " + user.Username.ToString() + " left voice.");
+                //Console.WriteLine(DateTime.Now.ToString() + ": " + user.Username.ToString() + " left voice.");
                 VoiceEnd(before.Guild.Id,before,user,initial.IsStreaming);
+
+                DateTime currenttime = DateTime.Now;
+                DateTime userstart = StaticFunctions.data[before.Guild.Id].usermanager[user.Id].total_voiceminute_marker;
+                if(userstart != DateTime.MinValue){
+                    if(StaticFunctions.data[before.Guild.Id].voicechatminutes.ContainsKey(initial.VoiceChannel.Id)){
+                        StaticFunctions.data[before.Guild.Id].voicechatminutes[initial.VoiceChannel.Id] += Convert.ToUInt64((currenttime - userstart).TotalMinutes);
+                        StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voiceminutetotal += Convert.ToUInt64((currenttime - userstart).TotalMinutes);
+                    }
+                    else{
+                        StaticFunctions.data[before.Guild.Id].voicechatminutes.Add(initial.VoiceChannel.Id, Convert.ToUInt64((currenttime - userstart).TotalMinutes));
+                        StaticFunctions.data[before.Guild.Id].usermanager[user.Id].voiceminutetotal += Convert.ToUInt64((currenttime - userstart).TotalMinutes);
+                    }
+                }
+                StaticFunctions.data[before.Guild.Id].usermanager[user.Id].total_voiceminute_marker = DateTime.MinValue;
             }
             
             return Task.CompletedTask;
             
         }
-
 
         private void VoiceEnd(ulong guild, SocketVoiceChannel channel, SocketUser user, bool isSharing){
             
@@ -166,18 +210,18 @@ namespace TreeTrunk.Services{
             if(voicetype != DateTime.MinValue){
                 if(isSharing){
                     StaticFunctions.data[guild].usermanager[user.Id].points_earned += Convert.ToInt32((currenttime - voicetype).TotalMinutes *pointsshare);
-                     Console.WriteLine("Total Points earned sharing: " + StaticFunctions.data[guild].usermanager[user.Id].points_earned.ToString());
+                    //Console.WriteLine("Total Points earned sharing: " + StaticFunctions.data[guild].usermanager[user.Id].points_earned.ToString());
                 }
                 else{
                     StaticFunctions.data[guild].usermanager[user.Id].points_earned += Convert.ToInt32((currenttime - voicetype).TotalMinutes *pointsregular);
-                     Console.WriteLine("Total Points earned regular: " + StaticFunctions.data[guild].usermanager[user.Id].points_earned.ToString());
+                    //Console.WriteLine("Total Points earned regular: " + StaticFunctions.data[guild].usermanager[user.Id].points_earned.ToString());
                 }
+
             }
             
             StaticFunctions.data[guild].usermanager[user.Id].voice_start = DateTime.MinValue;
             StaticFunctions.data[guild].usermanager[user.Id].share_start = DateTime.MinValue;
         }
-
 
         private void VoiceStart(ulong guild, ulong afk, SocketVoiceState state, SocketUser user, bool isSharing){
             DateTime voicetype = StaticFunctions.data[guild].usermanager[user.Id].voice_start;
