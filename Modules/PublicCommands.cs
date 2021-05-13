@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using Discord;
+using Discord.WebSocket;
 using Discord.Commands;
 using TreeTrunk.DataObjects;
 
@@ -65,6 +66,7 @@ namespace TreeTrunk.Modules{
         [Summary("replys with percentage till next rank")]
         public Task NextRank(){
             var m = Context.Message;
+            m.DeleteAsync();
             
             var ar = StaticFunctions.data[Context.Guild.Id].usermanager[m.Author.Id].activityrating;
             var ranks = new List<int>{
@@ -76,60 +78,127 @@ namespace TreeTrunk.Modules{
                 StaticFunctions.data[Context.Guild.Id].diamond_ar,
                 StaticFunctions.data[Context.Guild.Id].master_ar,
                 StaticFunctions.data[Context.Guild.Id].gm_ar};
+            var rank_roles = new List<ulong>{
+                StaticFunctions.data[Context.Guild.Id].quickplay,
+                StaticFunctions.data[Context.Guild.Id].bronze,
+                StaticFunctions.data[Context.Guild.Id].silver,
+                StaticFunctions.data[Context.Guild.Id].gold,
+                StaticFunctions.data[Context.Guild.Id].plat,
+                StaticFunctions.data[Context.Guild.Id].diamond,
+                StaticFunctions.data[Context.Guild.Id].master,
+                StaticFunctions.data[Context.Guild.Id].gm};
 
             for(int i = 1; i < ranks.Count; i++){
                 if(ar <= ranks[i]){
                     var percent = 100 - (((ranks[i]-ar)*100) / (ranks[i] - ranks[i-1]));
-                    ReplyAsync("**" + m.Author.Username.ToString() + "** you are " + percent.ToString() + "% in your current rank.",false);
+                    var rolename = Context.Guild.GetRole(rank_roles[i]).Name;
+                    ReplyAsync("**" + m.Author.Username.ToString() + "** you are " + percent.ToString() + "% in `@"+ rolename + "`.",false);
                     break;
                 }
             }
             return Task.CompletedTask;
         }
 
-        // [Command("top10")]
-        // [Summary("Displays the top10 ranked users.")]
-        // public Task TopTen(){
-        //     var m = Context.Message;
+        [Command("profilepic")]
+        [Alias("pfpic", "av")]
+        [Summary("Gets user profile pic")]
+        public Task ProfilePic([Remainder] string text){
+            var m = Context.Message;
+            m.DeleteAsync();
             
-        //     var memberlist = StaticFunctions.data[Context.Guild.Id].usermanager;
-
-        //     string desc = "";
-        //     var members = new List<Profile>();
-        //     foreach(var member in memberlist){
-        //         var currentAR = member.Value.activityrating;
-        //         for(var i = 0; i < members.Count ; i++ ){
-        //             if(currentAR >= members[i].activityrating){
-        //                 members.Insert(i,member.Value);
-        //                 break;
-        //             }
-        //             else if(currentAR){
-
-        //             }
-        //         }
-        //         if(members.Count >= 10){
-        //             break;
-        //         }
-        //     }
-            
-            
-            
-        //     for(int i = 1; i < members.Length; i++){
-        //         desc +=  emojisA_J[i-1] + " " + objects[i] + "\n";
-        //         reactions.Add(new Emoji(emojisA_J[i-1]));
-        //     }
+            var members = Context.Guild.Users;
+            SocketGuildUser user = null;
+            foreach(var member in members){
+                if(String.Compare(member.Username, text, true) == 0){
+                    user = member;
+                }
+            }
+            if(user == null) ReplyAsync(text + " does not exist in this server.");
+            else{
+                ReplyAsync("Profile picture of **" + user.Username + "**");
+                ReplyAsync(user.GetAvatarUrl());
+            }
             
 
-        //     var builder = new EmbedBuilder(){
-        //         Title = objects[0],
-        //         Color = Color.DarkGreen,
-        //         Description = desc
-        //     };
-        //     //bar_chart emoji
-        //     var message = ReplyAsync("\U0001F4CA Poll!",false,builder.Build()).Result;
+
+            return Task.CompletedTask;
+        }      
+
+        [Command("top10")]
+        [Alias("t10")]
+        [Summary("Displays the top10 ranked users.")]
+        public Task TopTen(){
+            var m = Context.Message;
+            m.DeleteAsync();
+            
+            var memberlist = StaticFunctions.data[Context.Guild.Id].usermanager;
+            var ranks = new List<int>{
+                StaticFunctions.data[Context.Guild.Id].armin,
+                StaticFunctions.data[Context.Guild.Id].bronze_ar,
+                StaticFunctions.data[Context.Guild.Id].silver_ar,
+                StaticFunctions.data[Context.Guild.Id].gold_ar,
+                StaticFunctions.data[Context.Guild.Id].plat_ar,
+                StaticFunctions.data[Context.Guild.Id].diamond_ar,
+                StaticFunctions.data[Context.Guild.Id].master_ar,
+                StaticFunctions.data[Context.Guild.Id].gm_ar};
+            var rank_roles = new List<ulong>{
+                StaticFunctions.data[Context.Guild.Id].quickplay,
+                StaticFunctions.data[Context.Guild.Id].bronze,
+                StaticFunctions.data[Context.Guild.Id].silver,
+                StaticFunctions.data[Context.Guild.Id].gold,
+                StaticFunctions.data[Context.Guild.Id].plat,
+                StaticFunctions.data[Context.Guild.Id].diamond,
+                StaticFunctions.data[Context.Guild.Id].master,
+                StaticFunctions.data[Context.Guild.Id].gm};
+            
+
+            string desc = "";
+            var members = new List<Profile>();
+            
+            foreach(var member in memberlist){
+                var currentAR = member.Value.activityrating;
+                if(members.Count == 0){
+                    members.Add(member.Value);
+                }
+                else{
+                    for(int i = 0; i < members.Count ; i++ ){
+                        if(currentAR >= members[i].activityrating){
+                            members.Insert(i,member.Value);
+                            break;
+                        }
+                        else if(i >= members.Count){
+                            members.Add(member.Value);
+                        }
+                    }
+                }
+            }
+
+            int length = 10;
+            if(members.Count < 10) length = members.Count;
+            
+
+            for(int i = 0; i < length; i++){
+                String rolename = "";
+                for(int j = 0; j < ranks.Count; j++){
+                    if(members[i].activityrating <= ranks[j]){
+                        rolename = Context.Guild.GetRole(rank_roles[j]).Name;
+                        break;
+                    }
+                }
+                desc += "**" + (i+1).ToString() + "):** " + rolename + " **-** " +  members[i].name + "\n";
+            }
+            
+
+            var builder = new EmbedBuilder(){
+                Title = "Leaderboard",
+                Color = Color.DarkGreen,
+                Description = desc
+            };
+            
+            var message = ReplyAsync("",false,builder.Build()).Result;
 
 
-        //     return Task.CompletedTask;
-        // }
+            return Task.CompletedTask;
+        }
     }
 }

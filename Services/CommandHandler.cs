@@ -29,7 +29,8 @@ namespace TreeTrunk.Services{
             _discord.UserJoined += UserJoinAsync;
             _discord.UserLeft += UserLeftAsync;
             _discord.UserVoiceStateUpdated += UserVoiceStateUpdatedAsync;
-            //_discord.ReactionAdded += ReactionAsync;
+            _discord.ReactionAdded += ReactionAddAsync;
+            _discord.ReactionRemoved += ReactionRemoveAsync;
         }
 
         public async Task InitializeAsync(){
@@ -38,15 +39,16 @@ namespace TreeTrunk.Services{
         
         private async Task MessageReceivedAsync(SocketMessage rawMessage){
             if(!(rawMessage is SocketUserMessage message)) return;
+            var context = new SocketCommandContext(_discord, message);
+            if(rawMessage.Author.Id == 523639851275386901) await SelfMessageHandler(rawMessage, context);
             if(message.Source != MessageSource.User) return;
             var argPos = 0;
-            var context = new SocketCommandContext(_discord, message);
             var guild = context.Guild.Id;
             if(!message.HasStringPrefix(StaticFunctions.data[guild].prefix, ref argPos)){
                 await messagehandler(rawMessage, context);
                 return;
             }
-            Console.WriteLine(DateTime.Now.ToString() + ": A command was executed.");
+            //Console.WriteLine(DateTime.Now.ToString() + ": A command was executed.");
             await _commands.ExecuteAsync(context, argPos, _services);
         }
 

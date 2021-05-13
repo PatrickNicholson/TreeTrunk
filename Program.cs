@@ -38,9 +38,9 @@ namespace TreeTrunk{
             await client.StartAsync();
 
             await services.GetRequiredService<CommandHandler>().InitializeAsync();
-            Console.WriteLine(DateTime.Now.ToString() + ": Before Infinite Await.");
+            //Console.WriteLine(DateTime.Now.ToString() + ": Before Infinite Await.");
             await Task.Delay(Timeout.Infinite);
-            Console.WriteLine(DateTime.Now.ToString() + ": After Inifinite Await, Shutting Down.");
+            //Console.WriteLine(DateTime.Now.ToString() + ": After Inifinite Await, Shutting Down.");
             
         }
 

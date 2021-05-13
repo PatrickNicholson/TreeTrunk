@@ -21,7 +21,7 @@ namespace TreeTrunk{
         public static void LoadGuildData(){
             Console.WriteLine(DateTime.Now.ToString() + ": Loading data");
             string json = File.ReadAllText("data.json");
-            lock(data){            
+            lock(data){
                 data = JsonConvert.DeserializeObject<ConcurrentDictionary<ulong, GuildData>>(json);
                 data = data ?? new ConcurrentDictionary<ulong, GuildData>();
             }
@@ -169,23 +169,23 @@ namespace TreeTrunk{
                             guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(guild.Value.unranked));
                         }
                         if(!roles.Contains(guildcomms.GetRole(guild.Value.quickplay)) && mmr == 1){
-                            guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(guild.Value.quickplay));
                             foreach(var role in roles){
                                 if(ranks.ContainsKey(role.Id)){
                                     guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(role.Id));
                                 }
                             }
+                            guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(guild.Value.quickplay));
                         }
                         else{
                             for(int i = 1; i < ranks.Count(); i++){
                                 if(!roles.Contains(guildcomms.GetRole(rank.ElementAt(i))) &&  mmr > ar_ranks.ElementAt(i-1) && mmr <= ar_ranks.ElementAt(i)){
-                                    guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(rank.ElementAt(i)));
                                     foreach(var role in roles){
                                         if(ranks.ContainsKey(role.Id)){
                                             guildcomms.GetUser(user.Key).RemoveRoleAsync(guildcomms.GetRole(role.Id));
                                             Console.WriteLine(rank.ElementAt(i));
                                         }
                                     }
+                                    guildcomms.GetUser(user.Key).AddRoleAsync(guildcomms.GetRole(rank.ElementAt(i)));
                                 }
                             }
                         }

@@ -7,15 +7,83 @@ using System.Linq;
 
 namespace TreeTrunk.Services{
     public partial class CommandHandler{
-        // private async Task ReactionAsync(Cacheable<IUserMessage, ulong> cachedMessage, ISocketMessageChannel messageChannel, SocketReaction reaction){
-        //     var message = await cachedMessage.GetOrDownloadAsync();
-        //     var reacts = message.Reactions.Count();
-        //     await message.;
-        //     if(reacts >= StaticFunctions.data[]){
-
-        //     }
+        
+        private Task ReactionAddAsync(Cacheable<IUserMessage, ulong> cachedMessage, ISocketMessageChannel messageChannel, SocketReaction reaction){
+            var message = cachedMessage.GetOrDownloadAsync().Result;
+            if(message.Author.IsBot) return Task.CompletedTask;
+            var reacts = 0;
+            foreach(var emote in message.Reactions){
+                if(emote.Value.ReactionCount > reacts){
+                    reacts = emote.Value.ReactionCount;
+                }
+            }
+            var guild = (message.Author as SocketGuildUser).Guild;
+            ulong guildid = (message.Author as SocketGuildUser).Guild.Id;
+            var starboardid = StaticFunctions.data[guildid].starboard;
             
-        // }
+            if(reacts >= StaticFunctions.data[guildid].reactbuff_limit){
+                StaticFunctions.data[guildid].usermanager[message.Author.Id].points_earned += StaticFunctions.data[guildid].reactbuff;
+            }
+            
+            
+            if(reacts >= StaticFunctions.data[guildid].starboardlimit && !StaticFunctions.data[guildid].starboardmessages.ContainsKey(message.Id)){
+                string imurl = null;
+                if(message.Attachments.Count != 0){
+                    imurl = message.Attachments.First().ProxyUrl;
+                }
+                var builder = new EmbedBuilder(){
+                    Author = new EmbedAuthorBuilder(){
+                                Name = message.Author.Username,
+                                IconUrl = message.Author.GetAvatarUrl()
+                            },
+                    Color = Color.DarkGreen,
+                    Description = message.Content,
+                    ImageUrl = imurl,
+                    Timestamp = message.Timestamp,
+                    Footer = new EmbedFooterBuilder(){
+                                Text = message.Id.ToString()
+                            }
+                }.AddField("**Source**","[Jump!]("+message.GetJumpUrl()+")").Build();
+                var x = guild.GetTextChannel(starboardid).SendMessageAsync("⭐**"+ reacts.ToString() +"**<#"+message.Channel.Id.ToString()+">",false,builder);
+                
+            }
+            else if(reacts >= StaticFunctions.data[guildid].starboardlimit && StaticFunctions.data[guildid].starboardmessages.ContainsKey(message.Id)){
+                var starmess = guild.GetTextChannel(starboardid).GetMessageAsync(StaticFunctions.data[guildid].starboardmessages[message.Id]).Result as IUserMessage;
+                starmess.ModifyAsync(x => x.Content = "⭐**"+ reacts.ToString() +"**<#"+message.Channel.Id.ToString()+">");
+            }
+
+            return Task.CompletedTask;
+        }
+
+        private Task ReactionRemoveAsync(Cacheable<IUserMessage, ulong> cachedMessage, ISocketMessageChannel messageChannel, SocketReaction reaction){
+            var message = cachedMessage.GetOrDownloadAsync().Result;
+            if(message.Author.IsBot) return Task.CompletedTask;
+            var reacts = 0;
+            foreach(var emote in message.Reactions){
+                if(emote.Value.ReactionCount > reacts){
+                    reacts = emote.Value.ReactionCount;
+                }
+            }
+            var guild = (message.Author as SocketGuildUser).Guild;
+            ulong guildid = (message.Author as SocketGuildUser).Guild.Id;
+            var starboardid = StaticFunctions.data[guildid].starboard;
+            
+            if(reacts < StaticFunctions.data[guildid].reactbuff_limit){
+                StaticFunctions.data[guildid].usermanager[message.Author.Id].points_earned -= StaticFunctions.data[guildid].reactbuff;
+            }
+            
+            
+            if(reacts < StaticFunctions.data[guildid].starboardlimit && StaticFunctions.data[guildid].starboardmessages.ContainsKey(message.Id)){            
+                guild.GetTextChannel(starboardid).DeleteMessageAsync(StaticFunctions.data[guildid].starboardmessages[message.Id]);
+                StaticFunctions.data[guildid].starboardmessages.Remove(message.Id);
+            }
+            else if(reacts >= StaticFunctions.data[guildid].starboardlimit && StaticFunctions.data[guildid].starboardmessages.ContainsKey(message.Id)){
+                var starmess = guild.GetTextChannel(starboardid).GetMessageAsync(StaticFunctions.data[guildid].starboardmessages[message.Id]).Result as IUserMessage;
+                starmess.ModifyAsync(x => x.Content = "⭐**"+ reacts.ToString() +"**<#"+message.Channel.Id.ToString()+">");
+            }
+            
+            return Task.CompletedTask;
+        }
 
         private Task ActivityAsync(SocketGuildUser initial, SocketGuildUser final){           
             if(initial.IsBot || final.IsBot) return Task.CompletedTask;
@@ -23,12 +91,18 @@ namespace TreeTrunk.Services{
             var roles = final.Roles.ToList();
 
             ActivityType initialAct = ActivityType.CustomStatus;
+            ActivityType initialGame = ActivityType.CustomStatus;
             foreach(var activity in initial.Activities){
                 if(activity.Type == ActivityType.Streaming){
                     initialAct = ActivityType.Streaming;
                 }
+                else if(activity.Type == ActivityType.Playing){
+                    initialGame = ActivityType.Playing;
+                }
             }
             ActivityType finalAct = ActivityType.CustomStatus;
+            ActivityType finalGame = ActivityType.CustomStatus;
+            string gamename = "";
             string service = "";
             string url = "";
             foreach(var activity in final.Activities){
@@ -38,8 +112,24 @@ namespace TreeTrunk.Services{
                     service = activitytemp.Name;
                     url = activitytemp.Url;                    
                 }
+                else if(activity.Type == ActivityType.Playing){
+                    finalGame = ActivityType.Playing;
+                    gamename = activity.Name;
+                }
             }
             
+            if(initialGame == ActivityType.CustomStatus && finalGame == ActivityType.Playing){
+                if(StaticFunctions.data[final.Guild.Id].usermanager[final.Id].activityrating > StaticFunctions.data[final.Guild.Id].gameactivitylimit){
+                    if(StaticFunctions.data[final.Guild.Id].gameactivity.ContainsKey(gamename)){
+                        StaticFunctions.data[final.Guild.Id].gameactivity[gamename]++;
+                    }
+                    else{
+                        StaticFunctions.data[final.Guild.Id].gameactivity.Add(gamename, 1);
+                    }
+                }
+            }
+
+
 
             ulong id = initial.Guild.Id;
             var streamerrole = initial.Guild.GetRole(StaticFunctions.data[id].streamrole);
@@ -90,6 +180,35 @@ namespace TreeTrunk.Services{
                 //Console.WriteLine(DateTime.Now.ToString() + ": " + user.Username.ToString() + " joined voice.");
                 VoiceStart(after.Guild.Id, after.Guild.AFKChannel.Id,final,user,final.IsStreaming);
                 StaticFunctions.data[after.Guild.Id].usermanager[user.Id].total_voiceminute_marker = DateTime.Now;
+
+                if(StaticFunctions.data[after.Guild.Id].vcroles.Contains(after.Id)){
+                    var roles = after.Guild.Roles;
+                    bool found = false;
+                    foreach(var role in roles){
+                        if(role.Name.Contains(after.Name)){
+                            after.Guild.GetUser(user.Id).AddRoleAsync(role);
+                            found = true;
+                            break;
+                        }
+                    }
+                    if(!found){
+                        after.Guild.CreateRoleAsync(after.Name, null, null,false,null);   
+                        for(int i = 0; i < 5; i++){
+                            roles = after.Guild.Roles;
+                            bool gotit = false;
+                            foreach(var role in roles){
+                                if(role.Name.Contains(after.Name)){
+                                    after.Guild.GetUser(user.Id).AddRoleAsync(role);
+                                    gotit = true;
+                                    break;
+                                }
+                            }
+                            if(gotit){
+                                break;
+                            }
+                        }
+                    }
+                }
             }
             else if(before != null && after != null && before != after){
                 //Console.WriteLine(DateTime.Now.ToString() + ": " + user.Username.ToString() + " moved voicechats.");
@@ -107,6 +226,50 @@ namespace TreeTrunk.Services{
                     }
                 }
                 StaticFunctions.data[after.Guild.Id].usermanager[user.Id].total_voiceminute_marker = DateTime.Now;
+
+                
+                if(StaticFunctions.data[before.Guild.Id].vcroles.Contains(before.Id)){
+                    var roles = before.Guild.Roles;
+                    SocketRole roll = null;
+                    foreach(var role in roles){
+                        if(role.Name.Contains(before.Name)){
+                            roll = role;
+                            break;
+                        }
+                    }
+                    if(roll != null){
+                        before.Guild.GetUser(user.Id).RemoveRoleAsync(roll);
+                    }
+                }
+                if(StaticFunctions.data[after.Guild.Id].vcroles.Contains(after.Id)){
+                    var roles = after.Guild.Roles;
+                    bool found = false;
+                    foreach(var role in roles){
+                        if(role.Name.Contains(after.Name)){
+                            after.Guild.GetUser(user.Id).AddRoleAsync(role);
+                            found = true;
+                            break;
+                        }
+                    }
+                    if(!found){
+                        after.Guild.CreateRoleAsync(after.Name, null, null,false,null);   
+                        for(int i = 0; i < 5; i++){
+                            roles = after.Guild.Roles;
+                            bool gotit = false;
+                            foreach(var role in roles){
+                                if(role.Name.Contains(after.Name)){
+                                    
+                                    after.Guild.GetUser(user.Id).AddRoleAsync(role);
+                                    gotit = true;
+                                    break;
+                                }
+                            }
+                            if(gotit){
+                                break;
+                            }
+                        }
+                    }
+                }
 
             }
             else if(before != null && after != null && before == after){
@@ -164,7 +327,22 @@ namespace TreeTrunk.Services{
                     }
                 }
                 StaticFunctions.data[before.Guild.Id].usermanager[user.Id].total_voiceminute_marker = DateTime.MinValue;
+                
+                if(StaticFunctions.data[before.Guild.Id].vcroles.Contains(before.Id)){
+                    var roles = before.Guild.Roles;
+                    SocketRole roll = null;
+                    foreach(var role in roles){
+                        if(role.Name.Contains(before.Name)){
+                            roll = role;
+                            break;
+                        }
+                    }
+                    if(roll != null){
+                        before.Guild.GetUser(user.Id).RemoveRoleAsync(roll);
+                    }
+                }
             }
+            
             
             return Task.CompletedTask;
             

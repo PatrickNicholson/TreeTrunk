@@ -53,6 +53,8 @@ namespace TreeTrunk.Modules{
         [Summary("Get info.")]
         [RequireUserPermission(GuildPermission.Administrator)]
         public Task Getinfo(){
+            var n = Context.Message;
+            n.DeleteAsync();
             var m = Context.Guild.CreatedAt.ToOffset(TimeSpan.FromHours(-5));
             Console.WriteLine("Stickman's Archipelago Created at:");
             Console.WriteLine(m.ToString());
@@ -73,6 +75,8 @@ namespace TreeTrunk.Modules{
         [Summary("sets the role to use when a user starts streaming")]
         [RequireUserPermission(GuildPermission.Administrator)]
         public Task SetStreamerRole([Remainder] string text){
+            var m = Context.Message;
+            m.DeleteAsync();
             
             var roles = Context.Guild.Roles;
             var id = Context.Guild.Id;
@@ -81,6 +85,7 @@ namespace TreeTrunk.Modules{
                 if(String.Equals(role.Name, text, StringComparison.CurrentCultureIgnoreCase)){
                     StaticFunctions.data[Context.Guild.Id].streamrole = role.Id;
                     found = true;
+                    break;
                 }
             }
             if(!found) ReplyAsync(text + " does not exist as a role.");  
@@ -90,8 +95,8 @@ namespace TreeTrunk.Modules{
         }
 
 
-        [Command("saveguilddata")]
-        [Alias("sgd")]
+        [Command("forcerankupdate")]
+        [Alias("fru")]
         [RequireUserPermission(GuildPermission.Administrator)]
         public Task savedata(){                       
             var m = Context.Message;
@@ -110,52 +115,107 @@ namespace TreeTrunk.Modules{
             return Task.CompletedTask;
         }
 
-        // [Command("retrofit")]
-        // [Summary("Reads all previous messages in server and collects them for statistics")]
-        // [RequireUserPermission(GuildPermission.Administrator)]
-        // public Task RetroFitData(){
+        [Command("lookup")]
+        [Alias("lu")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public Task LookUp([Remainder] string text){                       
+            var m = Context.Message;
+            m.DeleteAsync();
             
-        //     retro(Context);
-        //     return Task.CompletedTask;
-        // }
-        
-        // private async void retro(SocketCommandContext context){
-        //     var guild_id = context.Guild.Id;
-        //     var textchannels = context.Client.GetGuild(guild_id).TextChannels;
-        //     IMessage message_index = null;
-        //     foreach(var textchannel in textchannels){
-                
-        //         if(message_index == null){
-        //             foreach(var message in await textchannel.GetMessagesAsync(1).FlattenAsync()){
-        //                 message_index = message;
-        //             }
-        //         }
-        //         IMessage last_message = message_index;
-        //         //Console.WriteLine(textchannel.Name.ToString());
+            var members = Context.Guild.Users;
+            ulong userid = 0;
+            foreach(var member in members){
+                if(String.Compare(member.Username, text, true) == 0){
+                    userid = member.Id;
+                }
+            }
+            if(userid == 0) ReplyAsync(text + " does not exist in this server.");
+            else{
+                ReplyAsync(StaticFunctions.data[Context.Guild.Id].usermanager[userid].activityrating.ToString());
+            }
+            return Task.CompletedTask;
+        }
 
-        //         int leng = 1;
-        //         int count = 1;
-        //         while(leng > 0){
-        //             var messages = await textchannel.GetMessagesAsync(last_message, Direction.Before, 100).FlattenAsync();
-        //             //Console.WriteLine(messages.Count());
-        //             foreach( var message in messages){
-        //                 //Console.WriteLine(message.Author.ToString());
-                        
-        //                 //Console.WriteLine(message);
-        //                 last_message = message;
-        //             }
-        //             //Console.WriteLine(last_message);
-                    
-        //             leng = messages.Count();
-        //             count += leng;
-                    
-        //         }
-        //         Console.WriteLine(textchannel.Name.ToString() + " " + count.ToString());
-        //         message_index = null;
+        [Command("addrolevc")]
+        [Alias("avc")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public Task AddVoiceChat([Remainder] string text){                       
+            var m = Context.Message;
+            m.DeleteAsync();
+            
+            var chats = Context.Guild.VoiceChannels;
+            ulong chatid = 0;
+            string chatname = "";
+            foreach(var chat in chats){
+                if(chat.Name.Contains(text)){
+                    chatid = chat.Id;
+                    chatname = chat.Name;
+                }
+            }
+            if(chatid == 0) ReplyAsync(text + " does not exist in the Voicechat List.");
+            else{
+                if(StaticFunctions.data[Context.Guild.Id].vcroles.Contains(chatid)){
+                    ReplyAsync(chatname + " already exists in the Voicechat List." );
+                }
+                else{
+                    StaticFunctions.data[Context.Guild.Id].vcroles.Add(chatid);
+                    ReplyAsync(chatname + " was added to the Voicechat List.");
+                }
                 
-                    
-        //     }
-        // }
+            }
+            return Task.CompletedTask;
+        }
+
+        [Command("removerolevc")]
+        [Alias("rvc")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public Task RemoveVoiceChat([Remainder] string text){                       
+            var m = Context.Message;
+            m.DeleteAsync();
+            
+            var chats = Context.Guild.VoiceChannels;
+            ulong chatid = 0;
+            string chatname = "";
+            foreach(var chat in chats){
+                if(chat.Name.Contains(text)){
+                    chatid = chat.Id;
+                    chatname = chat.Name;
+                }
+            }
+            if(chatid == 0) ReplyAsync(text + " does not exist in the Voicechat List.");
+            else{
+                if(StaticFunctions.data[Context.Guild.Id].vcroles.Contains(chatid)){
+                    StaticFunctions.data[Context.Guild.Id].vcroles.Remove(chatid);
+                    ReplyAsync(chatname + " was removed from the ignore list");
+                }
+                else{
+                    ReplyAsync(chatname + " does not exist in the ignore list.");
+                }
+                
+            }
+            return Task.CompletedTask;
+        }
+
+        [Command("adjustdecay")]
+        [Alias("ad")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public Task ChangeDecay([Remainder] string text){                       
+            var m = Context.Message;
+            m.DeleteAsync();
+            var value = StaticFunctions.data[Context.Guild.Id].decay;
+            try{
+                value = Convert.ToInt32(text);
+            }
+            catch{
+                ReplyAsync("\"" + text + "\" cant be converted to a number");
+                return Task.CompletedTask;
+            }
+
+            StaticFunctions.data[Context.Guild.Id].decay = value;
+            ReplyAsync("successfully changed to: " + value.ToString());
+
+            return Task.CompletedTask;
+        }
 
     }
 }
