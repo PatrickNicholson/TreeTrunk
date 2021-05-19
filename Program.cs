@@ -14,15 +14,13 @@ using TreeTrunk.Services;
 namespace TreeTrunk{
     class Program{
 
-        static void Main(string[] args) 
-            => new Program().MainAsync().GetAwaiter().GetResult();
+        static void Main(string[] args) => new Program().MainAsync().GetAwaiter().GetResult();
 
         public async Task MainAsync(){
             var service = new ServiceCollection();
             ConfigureServices(service);
             var services = service.BuildServiceProvider();
             StaticFunctions.services = services;
-            //hook into logging service
             var client = services.GetRequiredService<DiscordSocketClient>();
             client.Log += LogAsync;
             client.Ready += StaticFunctions.InitializeData;
@@ -38,10 +36,7 @@ namespace TreeTrunk{
             await client.StartAsync();
 
             await services.GetRequiredService<CommandHandler>().InitializeAsync();
-            //Console.WriteLine(DateTime.Now.ToString() + ": Before Infinite Await.");
-            await Task.Delay(Timeout.Infinite);
-            //Console.WriteLine(DateTime.Now.ToString() + ": After Inifinite Await, Shutting Down.");
-            
+            await Task.Delay(Timeout.Infinite);            
         }
 
         private Task LogAsync(LogMessage log){

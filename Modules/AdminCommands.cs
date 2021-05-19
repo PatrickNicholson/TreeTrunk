@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using System.Text.Unicode;
 
 
 namespace TreeTrunk.Modules{
@@ -21,9 +22,6 @@ namespace TreeTrunk.Modules{
         [Summary("Get member discord tag.")]
         [RequireUserPermission(GuildPermission.Administrator)]
         public Task UserInfoAsync(IUser user = null){
-            var m = Context.Message;
-            m.DeleteAsync();
-
             user = user ?? Context.User;
             ReplyAsync(user.ToString());
             return Task.CompletedTask;
@@ -38,9 +36,7 @@ namespace TreeTrunk.Modules{
         [Summary("Change command prefix.")]
         [RequireUserPermission(GuildPermission.Administrator)]
         public Task ChangePrefix([Remainder] string text){
-            var m = Context.Message;
             var guild = Context.Guild.Id;
-            m.DeleteAsync();
             
             StaticFunctions.data[guild].prefix = text;
             
@@ -53,8 +49,7 @@ namespace TreeTrunk.Modules{
         [Summary("Get info.")]
         [RequireUserPermission(GuildPermission.Administrator)]
         public Task Getinfo(){
-            var n = Context.Message;
-            n.DeleteAsync();
+
             var m = Context.Guild.CreatedAt.ToOffset(TimeSpan.FromHours(-5));
             Console.WriteLine("Stickman's Archipelago Created at:");
             Console.WriteLine(m.ToString());
@@ -75,8 +70,6 @@ namespace TreeTrunk.Modules{
         [Summary("sets the role to use when a user starts streaming")]
         [RequireUserPermission(GuildPermission.Administrator)]
         public Task SetStreamerRole([Remainder] string text){
-            var m = Context.Message;
-            m.DeleteAsync();
             
             var roles = Context.Guild.Roles;
             var id = Context.Guild.Id;
@@ -99,8 +92,6 @@ namespace TreeTrunk.Modules{
         [Alias("fru")]
         [RequireUserPermission(GuildPermission.Administrator)]
         public Task savedata(){                       
-            var m = Context.Message;
-            m.DeleteAsync();
             StaticFunctions.UpdateAR();
             return Task.CompletedTask;
         }
@@ -108,9 +99,7 @@ namespace TreeTrunk.Modules{
         [Command("save")]
         [Alias("s")]
         [RequireUserPermission(GuildPermission.Administrator)]
-        public Task save(){                       
-            var m = Context.Message;
-            m.DeleteAsync();
+        public Task save(){
             StaticFunctions.WriteGuildData();
             return Task.CompletedTask;
         }
@@ -118,10 +107,7 @@ namespace TreeTrunk.Modules{
         [Command("lookup")]
         [Alias("lu")]
         [RequireUserPermission(GuildPermission.Administrator)]
-        public Task LookUp([Remainder] string text){                       
-            var m = Context.Message;
-            m.DeleteAsync();
-            
+        public Task LookUp([Remainder] string text){
             var members = Context.Guild.Users;
             ulong userid = 0;
             foreach(var member in members){
@@ -139,10 +125,7 @@ namespace TreeTrunk.Modules{
         [Command("addrolevc")]
         [Alias("avc")]
         [RequireUserPermission(GuildPermission.Administrator)]
-        public Task AddVoiceChat([Remainder] string text){                       
-            var m = Context.Message;
-            m.DeleteAsync();
-            
+        public Task AddVoiceChat([Remainder] string text){
             var chats = Context.Guild.VoiceChannels;
             ulong chatid = 0;
             string chatname = "";
@@ -169,10 +152,7 @@ namespace TreeTrunk.Modules{
         [Command("removerolevc")]
         [Alias("rvc")]
         [RequireUserPermission(GuildPermission.Administrator)]
-        public Task RemoveVoiceChat([Remainder] string text){                       
-            var m = Context.Message;
-            m.DeleteAsync();
-            
+        public Task RemoveVoiceChat([Remainder] string text){
             var chats = Context.Guild.VoiceChannels;
             ulong chatid = 0;
             string chatname = "";
@@ -199,9 +179,7 @@ namespace TreeTrunk.Modules{
         [Command("adjustdecay")]
         [Alias("ad")]
         [RequireUserPermission(GuildPermission.Administrator)]
-        public Task ChangeDecay([Remainder] string text){                       
-            var m = Context.Message;
-            m.DeleteAsync();
+        public Task ChangeDecay([Remainder] string text){
             var value = StaticFunctions.data[Context.Guild.Id].decay;
             try{
                 value = Convert.ToInt32(text);
@@ -214,6 +192,62 @@ namespace TreeTrunk.Modules{
             StaticFunctions.data[Context.Guild.Id].decay = value;
             ReplyAsync("successfully changed to: " + value.ToString());
 
+            return Task.CompletedTask;
+        }
+
+        [Command("adjuststarlimit")]
+        [Alias("asl")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public Task ChangeStarLimit([Remainder] string text){                       
+            var value = StaticFunctions.data[Context.Guild.Id].starboardlimit;
+            try{
+                value = Convert.ToInt32(text);
+            }
+            catch{
+                ReplyAsync("\"" + text + "\" cant be converted to a number.");
+                return Task.CompletedTask;
+            }
+
+            StaticFunctions.data[Context.Guild.Id].starboardlimit = value;
+            ReplyAsync("successfully changed to: " + value.ToString());
+
+            return Task.CompletedTask;
+        }
+
+        [Command("setstardefault")]
+        [Alias("ssdefault")]
+        [RequireUserPermission(GuildPermission.Administrator)]
+        public Task ChangeStarDefault([Remainder] string text){
+            text.Trim();
+            Console.WriteLine(text[0].ToString());
+            Console.WriteLine(text.Length);
+            Console.WriteLine(System.Text.ASCIIEncoding.Unicode.GetByteCount(text));
+            
+            if(text.EndsWith(">") && text.StartsWith("<")){
+                ulong id = 0;
+                try{
+                    id = Convert.ToUInt64(text.Substring(text.LastIndexOf(":") + 1, text.Length - 7));
+                }
+                catch{
+                    ReplyAsync("\"" + text + "\" is not an emote.");
+                    return Task.CompletedTask;
+                }
+                
+                foreach(var emote in Context.Guild.Emotes){
+                    if(emote.Id == id){
+                        StaticFunctions.data[Context.Guild.Id].starboarddefault = text;
+                        ReplyAsync("Successfully changed to: " + text.ToString());
+                        break;
+                    }
+                }
+            }
+            else if(text.Length < 50){
+                StaticFunctions.data[Context.Guild.Id].starboarddefault = text;
+                ReplyAsync("Successfully changed to: " + text.ToString());
+            }
+            else{
+                ReplyAsync("\"" + text + "\" must less than 50 characters.");
+            }
             return Task.CompletedTask;
         }
 

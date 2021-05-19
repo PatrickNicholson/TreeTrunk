@@ -15,27 +15,24 @@ namespace TreeTrunk.Modules{
             "\U0001F1E6","\U0001F1E7","\U0001F1E8","\U0001F1E9","\U0001F1EA",
             "\U0001F1EB","\U0001F1EC","\U0001F1ED","\U0001F1EE","\U0001F1EF",
             "\U0001F1F0","\U0001F1F1","\U0001F1F2","\U0001F1F3","\U0001F1F4",
-            "\U0001F1F5","\U0001F1F6","\U0001F1F7","\U0001F1F8","\U0001F1F9"};
+            "\U0001F1F5","\U0001F1F6","\U0001F1F7","\U0001F1F8","\U0001F1F9"
+        };
 
         [Command("ping")]
         [Summary("pong!")]
         [Alias("pong", "hello")]
-        public Task PingAsync()
-            => ReplyAsync("pong!");
+        public Task PingAsync() => ReplyAsync("pong!");
 
         // [Remainder] takes the rest of the command's arguments as one argument, rather than splitting every space
         [Command("echo")]
         [Summary("Echo's your message.")]
-        public Task EchoAsync([Remainder] string text)
-            // Insert a ZWSP before the text to prevent triggering other bots!
-            => ReplyAsync('\u200B' + text);
+        public Task EchoAsync([Remainder] string text) => ReplyAsync('\u200B' + text);
+        // Insert a ZWSP before the text to prevent triggering other bots!
         
         [Command("poll")]
         [Summary("Can have 2-20 options. How to use: \"poll <title> <option1> <option2> <option3>...\"")]
         public Task PollAsync(params string[] objects){
-            var m = Context.Message;
             var reactions = new List<IEmote>();
-            m.DeleteAsync();
 
             if(objects.Length > 21 || objects.Length < 3){
                 ReplyAsync(":bar_chart: Polls can only have 2-20 options",false);
@@ -65,10 +62,7 @@ namespace TreeTrunk.Modules{
         [Alias("nr")]
         [Summary("replys with percentage till next rank")]
         public Task NextRank(){
-            var m = Context.Message;
-            m.DeleteAsync();
-            
-            var ar = StaticFunctions.data[Context.Guild.Id].usermanager[m.Author.Id].activityrating;
+            var ar = StaticFunctions.data[Context.Guild.Id].usermanager[Context.Message.Author.Id].activityrating;
             var ranks = new List<int>{
                 StaticFunctions.data[Context.Guild.Id].armin,
                 StaticFunctions.data[Context.Guild.Id].bronze_ar,
@@ -92,7 +86,7 @@ namespace TreeTrunk.Modules{
                 if(ar <= ranks[i]){
                     var percent = 100 - (((ranks[i]-ar)*100) / (ranks[i] - ranks[i-1]));
                     var rolename = Context.Guild.GetRole(rank_roles[i]).Name;
-                    ReplyAsync("**" + m.Author.Username.ToString() + "** you are " + percent.ToString() + "% in `@"+ rolename + "`.",false);
+                    ReplyAsync("**" + Context.Message.Author.Username.ToString() + "** you are " + percent.ToString() + "% in `@"+ rolename + "`.",false);
                     break;
                 }
             }
@@ -103,8 +97,6 @@ namespace TreeTrunk.Modules{
         [Alias("pfpic", "av")]
         [Summary("Gets user profile pic")]
         public Task ProfilePic([Remainder] string text){
-            var m = Context.Message;
-            m.DeleteAsync();
             
             var members = Context.Guild.Users;
             SocketGuildUser user = null;
@@ -128,8 +120,6 @@ namespace TreeTrunk.Modules{
         [Alias("t10")]
         [Summary("Displays the top10 ranked users.")]
         public Task TopTen(){
-            var m = Context.Message;
-            m.DeleteAsync();
             
             var memberlist = StaticFunctions.data[Context.Guild.Id].usermanager;
             var ranks = new List<int>{

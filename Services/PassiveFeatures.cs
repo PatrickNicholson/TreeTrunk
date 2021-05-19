@@ -11,15 +11,24 @@ namespace TreeTrunk.Services{
         private Task ReactionAddAsync(Cacheable<IUserMessage, ulong> cachedMessage, ISocketMessageChannel messageChannel, SocketReaction reaction){
             var message = cachedMessage.GetOrDownloadAsync().Result;
             if(message.Author.IsBot) return Task.CompletedTask;
-            var reacts = 0;
-            foreach(var emote in message.Reactions){
-                if(emote.Value.ReactionCount > reacts){
-                    reacts = emote.Value.ReactionCount;
-                }
-            }
+            int reacts = 0;
+            Emote emoji = null;
             var guild = (message.Author as SocketGuildUser).Guild;
             ulong guildid = (message.Author as SocketGuildUser).Guild.Id;
             var starboardid = StaticFunctions.data[guildid].starboard;
+            string emotename = StaticFunctions.data[guildid].starboarddefault;
+
+            foreach(var emote in message.Reactions){
+                if(emote.Value.ReactionCount >= reacts && emote.Key.Name == reaction.Emote.Name){
+                    reacts = emote.Value.ReactionCount;
+                    emoji = emote.Key as Emote;
+                }
+            }
+            
+            if(guild.Emotes.Contains(emoji)){
+                emotename = "<:" + emoji.Name.ToString() + ":" + emoji.Id.ToString() + ">";
+            }
+
             
             if(reacts >= StaticFunctions.data[guildid].reactbuff_limit){
                 StaticFunctions.data[guildid].usermanager[message.Author.Id].points_earned += StaticFunctions.data[guildid].reactbuff;
@@ -44,12 +53,12 @@ namespace TreeTrunk.Services{
                                 Text = message.Id.ToString()
                             }
                 }.AddField("**Source**","[Jump!]("+message.GetJumpUrl()+")").Build();
-                var x = guild.GetTextChannel(starboardid).SendMessageAsync("⭐**"+ reacts.ToString() +"**<#"+message.Channel.Id.ToString()+">",false,builder);
+                guild.GetTextChannel(starboardid).SendMessageAsync(emotename + " **"+ reacts.ToString() +"** <#"+message.Channel.Id.ToString()+">",false,builder);
                 
             }
             else if(reacts >= StaticFunctions.data[guildid].starboardlimit && StaticFunctions.data[guildid].starboardmessages.ContainsKey(message.Id)){
                 var starmess = guild.GetTextChannel(starboardid).GetMessageAsync(StaticFunctions.data[guildid].starboardmessages[message.Id]).Result as IUserMessage;
-                starmess.ModifyAsync(x => x.Content = "⭐**"+ reacts.ToString() +"**<#"+message.Channel.Id.ToString()+">");
+                starmess.ModifyAsync(x => x.Content = emotename + " **"+ reacts.ToString() +"** <#"+message.Channel.Id.ToString()+">");
             }
 
             return Task.CompletedTask;
@@ -59,14 +68,22 @@ namespace TreeTrunk.Services{
             var message = cachedMessage.GetOrDownloadAsync().Result;
             if(message.Author.IsBot) return Task.CompletedTask;
             var reacts = 0;
-            foreach(var emote in message.Reactions){
-                if(emote.Value.ReactionCount > reacts){
-                    reacts = emote.Value.ReactionCount;
-                }
-            }
+            Emote emoji = null;
             var guild = (message.Author as SocketGuildUser).Guild;
             ulong guildid = (message.Author as SocketGuildUser).Guild.Id;
             var starboardid = StaticFunctions.data[guildid].starboard;
+            string emotename = StaticFunctions.data[guildid].starboarddefault;
+
+            foreach(var emote in message.Reactions){
+                if(emote.Value.ReactionCount >= reacts && emote.Key.Name != reaction.Emote.Name){
+                    reacts = emote.Value.ReactionCount;
+                    emoji = emote.Key as Emote;
+                }
+            }
+
+            if(guild.Emotes.Contains(emoji)){
+                emotename = "<:" + emoji.Name.ToString() + ":" + emoji.Id.ToString() + ">";
+            }
             
             if(reacts < StaticFunctions.data[guildid].reactbuff_limit){
                 StaticFunctions.data[guildid].usermanager[message.Author.Id].points_earned -= StaticFunctions.data[guildid].reactbuff;
@@ -79,7 +96,7 @@ namespace TreeTrunk.Services{
             }
             else if(reacts >= StaticFunctions.data[guildid].starboardlimit && StaticFunctions.data[guildid].starboardmessages.ContainsKey(message.Id)){
                 var starmess = guild.GetTextChannel(starboardid).GetMessageAsync(StaticFunctions.data[guildid].starboardmessages[message.Id]).Result as IUserMessage;
-                starmess.ModifyAsync(x => x.Content = "⭐**"+ reacts.ToString() +"**<#"+message.Channel.Id.ToString()+">");
+                starmess.ModifyAsync(x => x.Content = emotename + " **"+ reacts.ToString() +"** <#"+message.Channel.Id.ToString()+">");
             }
             
             return Task.CompletedTask;
@@ -177,7 +194,6 @@ namespace TreeTrunk.Services{
             
             
             if(before == null && after != null){
-                //Console.WriteLine(DateTime.Now.ToString() + ": " + user.Username.ToString() + " joined voice.");
                 VoiceStart(after.Guild.Id, after.Guild.AFKChannel.Id,final,user,final.IsStreaming);
                 StaticFunctions.data[after.Guild.Id].usermanager[user.Id].total_voiceminute_marker = DateTime.Now;
 

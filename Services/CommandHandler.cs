@@ -31,31 +31,41 @@ namespace TreeTrunk.Services{
             _discord.UserVoiceStateUpdated += UserVoiceStateUpdatedAsync;
             _discord.ReactionAdded += ReactionAddAsync;
             _discord.ReactionRemoved += ReactionRemoveAsync;
+            _discord.InviteCreated += InviteCreatedAsync;
+            _discord.LatencyUpdated += LatencyStatus;
         }
 
         public async Task InitializeAsync(){
             await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
         }
         
-        private async Task MessageReceivedAsync(SocketMessage rawMessage){
-            if(!(rawMessage is SocketUserMessage message)) return;
-            var context = new SocketCommandContext(_discord, message);
-            if(rawMessage.Author.Id == 523639851275386901) await SelfMessageHandler(rawMessage, context);
-            if(message.Source != MessageSource.User) return;
-            var argPos = 0;
-            var guild = context.Guild.Id;
-            if(!message.HasStringPrefix(StaticFunctions.data[guild].prefix, ref argPos)){
-                await messagehandler(rawMessage, context);
-                return;
+        private Task MessageReceivedAsync(SocketMessage rawMessage){
+            
+            if(rawMessage.Source == MessageSource.System || rawMessage.Source == MessageSource.Webhook){
+                return Task.CompletedTask;
             }
-            //Console.WriteLine(DateTime.Now.ToString() + ": A command was executed.");
-            await _commands.ExecuteAsync(context, argPos, _services);
+
+            var message = rawMessage as SocketUserMessage;
+            var context = new SocketCommandContext(_discord, message);
+            var argPos = 0;
+            if(rawMessage.Author.Id == context.Client.CurrentUser.Id){
+                SelfMessageHandler(rawMessage, context);
+            }
+            else if(message.HasStringPrefix(StaticFunctions.data[context.Guild.Id].prefix, ref argPos)){
+                context.Message.DeleteAsync();
+                _commands.ExecuteAsync(context, argPos, _services);
+            }
+            else{
+                MessageHandler(rawMessage, context);
+            }
+            return Task.CompletedTask;
         }
 
-        public async Task CommandExecutedAsync(Optional<CommandInfo> command, ICommandContext context, IResult result){
-            if (!command.IsSpecified) return;
-            if (result.IsSuccess) return;
-            await context.Channel.SendMessageAsync($"{result}");
+        public Task CommandExecutedAsync(Optional<CommandInfo> command, ICommandContext context, IResult result){
+            if (!command.IsSpecified) return Task.CompletedTask;
+            if (result.IsSuccess) return Task.CompletedTask;
+            context.Channel.SendMessageAsync($"{result}");
+            return Task.CompletedTask;
         }
 
     }

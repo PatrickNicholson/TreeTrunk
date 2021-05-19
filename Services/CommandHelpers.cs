@@ -9,7 +9,7 @@ using System.Linq;
 namespace TreeTrunk.Services{
     public partial class CommandHandler{
 
-        private Task messagehandler(SocketMessage rawMessage, SocketCommandContext context){
+        private Task MessageHandler(SocketMessage rawMessage, SocketCommandContext context){
             //Console.WriteLine(DateTime.Now.ToString() + ": A message was collected.");
             int points = 0;
             var len = rawMessage.Content.ToString().Length;
@@ -47,6 +47,17 @@ namespace TreeTrunk.Services{
             if(!StaticFunctions.data[context.Guild.Id].starboardmessages.ContainsKey(referenceId)){
                 StaticFunctions.data[context.Guild.Id].starboardmessages.Add(referenceId, rawMessage.Id);
             }
+            return Task.CompletedTask;
+        }
+
+        private Task InviteCreatedAsync(SocketInvite invite){
+            invite.Guild.GetTextChannel(StaticFunctions.data[invite.Guild.Id].modchat).SendMessageAsync(invite.Inviter.Username.ToString() + " created an invite to the server.");
+            return Task.CompletedTask;
+        }
+
+        private Task LatencyStatus(int previous, int current){
+            Console.WriteLine(current + "ms");
+            _discord.SetGameAsync("**" + current.ToString() + "ms Ping**", null, ActivityType.Playing);
             return Task.CompletedTask;
         }
     }
