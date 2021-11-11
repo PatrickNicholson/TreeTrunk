@@ -33,6 +33,7 @@ namespace TreeTrunk.Services{
             _discord.ReactionRemoved += ReactionRemoveAsync;
             _discord.InviteCreated += InviteCreatedAsync;
             _discord.LatencyUpdated += LatencyStatus;
+            _discord.MessageDeleted += MessageDeletedAsync;
         }
 
         public async Task InitializeAsync(){

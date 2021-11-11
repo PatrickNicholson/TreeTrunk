@@ -57,12 +57,27 @@ namespace TreeTrunk.Modules{
             return Task.CompletedTask;
         }
 
-
         [Command("nextrank")]
         [Alias("nr")]
         [Summary("replys with percentage till next rank")]
-        public Task NextRank(){
-            var ar = StaticFunctions.data[Context.Guild.Id].usermanager[Context.Message.Author.Id].activityrating;
+        public Task NextRank([Remainder] string text){
+            var ar = -1;
+            var name = "";
+
+            foreach(var profiles in StaticFunctions.data[Context.Guild.Id].usermanager.Values){
+                if(profiles.name.Contains(text,StringComparison.InvariantCultureIgnoreCase)){
+                    ar = profiles.activityrating;
+                    name = profiles.name;
+                }
+            }
+
+            if(ar == -1){
+                ReplyAsync("\"" + text + "\"" + " does not exist.");
+                return Task.CompletedTask;
+            }
+
+
+
             var ranks = new List<int>{
                 StaticFunctions.data[Context.Guild.Id].armin,
                 StaticFunctions.data[Context.Guild.Id].bronze_ar,
@@ -86,7 +101,44 @@ namespace TreeTrunk.Modules{
                 if(ar <= ranks[i]){
                     var percent = 100 - (((ranks[i]-ar)*100) / (ranks[i] - ranks[i-1]));
                     var rolename = Context.Guild.GetRole(rank_roles[i]).Name;
-                    ReplyAsync("**" + Context.Message.Author.Username.ToString() + "** you are " + percent.ToString() + "% in `@"+ rolename + "`.",false);
+                    ReplyAsync("**" + name + "** you are " + percent.ToString() + "% in `@"+ rolename + "`.",false);
+                    break;
+                }
+            }
+            return Task.CompletedTask;
+        }
+
+        [Command("nextrank")]
+        [Alias("nr")]
+        [Summary("replys with percentage till next rank")]
+        public Task NextRank(){
+            var ar = StaticFunctions.data[Context.Guild.Id].usermanager[Context.Message.Author.Id].activityrating;
+            var name = Context.Message.Author.Username.ToString();
+
+            var ranks = new List<int>{
+                StaticFunctions.data[Context.Guild.Id].armin,
+                StaticFunctions.data[Context.Guild.Id].bronze_ar,
+                StaticFunctions.data[Context.Guild.Id].silver_ar,
+                StaticFunctions.data[Context.Guild.Id].gold_ar,
+                StaticFunctions.data[Context.Guild.Id].plat_ar,
+                StaticFunctions.data[Context.Guild.Id].diamond_ar,
+                StaticFunctions.data[Context.Guild.Id].master_ar,
+                StaticFunctions.data[Context.Guild.Id].gm_ar};
+            var rank_roles = new List<ulong>{
+                StaticFunctions.data[Context.Guild.Id].quickplay,
+                StaticFunctions.data[Context.Guild.Id].bronze,
+                StaticFunctions.data[Context.Guild.Id].silver,
+                StaticFunctions.data[Context.Guild.Id].gold,
+                StaticFunctions.data[Context.Guild.Id].plat,
+                StaticFunctions.data[Context.Guild.Id].diamond,
+                StaticFunctions.data[Context.Guild.Id].master,
+                StaticFunctions.data[Context.Guild.Id].gm};
+
+            for(int i = 1; i < ranks.Count; i++){
+                if(ar <= ranks[i]){
+                    var percent = 100 - (((ranks[i]-ar)*100) / (ranks[i] - ranks[i-1]));
+                    var rolename = Context.Guild.GetRole(rank_roles[i]).Name;
+                    ReplyAsync("**" + name + "** you are " + percent.ToString() + "% in `@"+ rolename + "`.",false);
                     break;
                 }
             }
@@ -169,15 +221,16 @@ namespace TreeTrunk.Modules{
 
             for(int i = 0; i < length; i++){
                 String rolename = "";
-                for(int j = 0; j < ranks.Count; j++){
+                String percent = "";
+                for(int j = 1; j < ranks.Count; j++){
                     if(members[i].activityrating <= ranks[j]){
+                        percent = (100 - (((ranks[j]-members[i].activityrating)*100) / (ranks[j] - ranks[j -1]))).ToString() + "%";
                         rolename = Context.Guild.GetRole(rank_roles[j]).Name;
                         break;
                     }
                 }
-                desc += "**" + (i+1).ToString() + "):** " + rolename + " **-** " +  members[i].name + "\n";
+                desc += "**" + (i+1).ToString() + "):** " + rolename + " **-** " +  percent + " **-** " + members[i].name + "\n";
             }
-            
 
             var builder = new EmbedBuilder(){
                 Title = "Leaderboard",

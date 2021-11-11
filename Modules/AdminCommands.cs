@@ -190,6 +190,7 @@ namespace TreeTrunk.Modules{
             }
 
             StaticFunctions.data[Context.Guild.Id].decay = value;
+
             ReplyAsync("successfully changed to: " + value.ToString());
 
             return Task.CompletedTask;

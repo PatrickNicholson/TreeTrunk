@@ -7,6 +7,23 @@ using System.Linq;
 
 namespace TreeTrunk.Services{
     public partial class CommandHandler{
+
+        private Task MessageDeletedAsync(Cacheable<IMessage, ulong> cachedMessage, ISocketMessageChannel channel){
+            
+            var guildid = (channel as SocketGuildChannel).Guild.Id;            
+            
+            var starboardid = StaticFunctions.data[guildid].starboard;
+            if(channel.Id != starboardid){
+                return Task.CompletedTask;
+            }
+            var message = cachedMessage.GetOrDownloadAsync().Result;
+            if(StaticFunctions.data[guildid].starboardmessages.ContainsValue(message.Id)){
+                var key = StaticFunctions.data[guildid].starboardmessages.FirstOrDefault(x => x.Value == message.Id).Key;
+                StaticFunctions.data[guildid].starboardmessages.Remove(key);   
+            }
+
+            return Task.CompletedTask;
+        }
         
         private Task ReactionAddAsync(Cacheable<IUserMessage, ulong> cachedMessage, ISocketMessageChannel messageChannel, SocketReaction reaction){
             var message = cachedMessage.GetOrDownloadAsync().Result;
@@ -450,6 +467,7 @@ namespace TreeTrunk.Services{
                 StaticFunctions.data[guild].usermanager[user.Id].voice_start = DateTime.MinValue;
             }
         }
+
 
     }
 }
